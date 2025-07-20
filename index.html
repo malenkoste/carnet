@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Art Portfolio</title>
+    <title>Ezra S</title>
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
     <style>
         /* ✅ RAMI font */
@@ -463,28 +464,28 @@
         const titleManager = {
             artworkTitles: [
                 "FIGURE PATERNELLE",           // artwork01
-                "STUDY",          // artwork02
+                "AP",          // artwork02
                 "MACBETH",           // artwork03
                 "HANGING STUDY",          // artwork04
-                "STUDY",           // artwork05
+                "STUDY DRAWING",           // artwork05
                 "FIGURE",           // artwork06
-                "STUDY",         // artwork07
+                "COURANT",         // artwork07
                 "STUDY",          // artwork08
                 "SABBATH",           // artwork09
                 "A GATHERING",           // artwork10
                 "AUGUST",        // artwork11
-                "DRAGONFRUIT",         // artwork12
+                "FRUIT",         // artwork12
                 "SKETCHBOOK PAGE",      // artwork13
                 "TETE STUDIES",      // artwork14
                 "DANIEL",       // artwork15
                 "FLYING MEN",       // artwork16
-                "WATCHER IN THE CLOUDS",     // artwork17
+                "CLOUDS",     // artwork17
                 "PINA",      // artwork18
                 "MAREE",      // artwork19
                 "FLAMMES",       // artwork20
                 "SKETCHBOOK PAGE",    // artwork21
-                "PLANETFILTH",   // artwork22
-                "BUDAPEST",    // artwork23
+                "SUN",   // artwork22
+                "BUDAPEST PAGE",    // artwork23
                 "FLOWER STUDIES",   // artwork24
                 "CARNIVOR",    // artwork25
                 "ENFANCE",    // artwork26
@@ -498,7 +499,7 @@
                 "SEED",   // artwork34
                 "FAIRY",    // artwork35
                 "LUMIERE ABOMINABLE",    // artwork36
-                "LOUE",  // artwork37
+                "LU",  // artwork37
                 "BEHAVIOUR",   // artwork38
                 "HAPPY THOUGHTS",    // artwork39
                 "ARBRE",        // artwork40
@@ -557,11 +558,10 @@
             }
         };
 
-        // Perfect Random Display System - Fixed Mathematical Solution
+        // Chronological Display System
         const artworkManager = {
             mediaFiles: [],
-            shuffledQueue: [],
-            currentQueueIndex: 0,
+            currentIndex: 0,
             isLoading: false,
             
             async loadMediaFiles() {
@@ -608,10 +608,8 @@
                 }
                 
                 console.log(`✅ TOTAL LOADED: ${this.mediaFiles.length} artwork files`);
-                console.log(`Files loaded: [${this.mediaFiles.map(f => f.name.match(/artwork(\d+)/)[1]).join(', ')}]`);
                 
                 if (this.mediaFiles.length > 0) {
-                    this.generateNewCycle();
                     this.showNextArtwork();
                 } else {
                     console.warn("❌ No artwork files found. Make sure files are in assets/artwork/ folder");
@@ -627,56 +625,6 @@
                 }
             },
             
-            // Corrected Fisher-Yates Shuffle Algorithm
-            fisherYatesShuffle(array) {
-                const shuffled = [...array]; // Create a copy
-                
-                for (let i = shuffled.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    // Swap elements
-                    const temp = shuffled[i];
-                    shuffled[i] = shuffled[j];
-                    shuffled[j] = temp;
-                }
-                
-                return shuffled;
-            },
-            
-            generateNewCycle() {
-                console.log("=== GENERATING NEW CYCLE ===");
-                
-                // Create array of indices [0, 1, 2, ..., n-1] where n = number of media files
-                const indices = [];
-                for (let i = 0; i < this.mediaFiles.length; i++) {
-                    indices.push(i);
-                }
-                
-                // Apply Fisher-Yates shuffle for perfect randomization
-                this.shuffledQueue = this.fisherYatesShuffle(indices);
-                this.currentQueueIndex = 0;
-                
-                console.log(`New cycle created with ${this.shuffledQueue.length} images`);
-                console.log(`Shuffled indices: [${this.shuffledQueue.join(', ')}]`);
-                console.log(`This means order: [${this.shuffledQueue.map(idx => this.mediaFiles[idx].name.match(/artwork(\d+)/)[1]).join(', ')}]`);
-            },
-            
-            getNextImageIndex() {
-                // If we've shown all images in current cycle, generate new cycle
-                if (this.currentQueueIndex >= this.shuffledQueue.length) {
-                    console.log("=== CYCLE COMPLETE - ALL IMAGES SHOWN ONCE ===");
-                    this.generateNewCycle();
-                }
-                
-                // Get the next image index from our shuffled queue
-                const nextIndex = this.shuffledQueue[this.currentQueueIndex];
-                this.currentQueueIndex++;
-                
-                const artworkNumber = this.mediaFiles[nextIndex].name.match(/artwork(\d+)/)[1];
-                console.log(`Next image: Array index ${nextIndex} (artwork${artworkNumber}) - ${this.currentQueueIndex}/${this.shuffledQueue.length} shown in cycle`);
-                
-                return nextIndex;
-            },
-            
             showNextArtwork() {
                 if (this.isLoading || this.mediaFiles.length === 0) return;
                 
@@ -688,8 +636,8 @@
                 }
                 
                 setTimeout(() => {
-                    const imageIndex = this.getNextImageIndex();
-                    const mediaFile = this.mediaFiles[imageIndex];
+                    const mediaFile = this.mediaFiles[this.currentIndex];
+                    this.currentIndex = (this.currentIndex + 1) % this.mediaFiles.length;
                     
                     currentArtworkName = mediaFile.name;
                     
@@ -729,7 +677,7 @@
                         // Play click sound when artwork changes
                         audioSystem.playClickSound();
                         
-                        console.log(`✅ Showing: ${mediaFile.name} | Title: "${properTitle}" | Cycle progress: ${this.currentQueueIndex}/${this.shuffledQueue.length}`);
+                        console.log(`✅ Showing: ${mediaFile.name} | Title: "${properTitle}"`);
                     };
                     
                     newMedia.onerror = () => {
@@ -817,7 +765,7 @@
             document.getElementById('portfolio-content').addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log("Click detected - flipping to random artwork");
-                artworkManager.showRandomArtwork();
+                artworkManager.showNextArtwork();
             });
             
             document.getElementById('portfolio-content').addEventListener('mouseenter', () => {
