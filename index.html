@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Art Portfolio</title>
+
+    <style>
+        /* ✅ RAMI font */
+        @font-face {
+            font-family: 'RAMI';
+            src: url('assets/fonts/RAMI.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'RAMI' !important;
+            cursor: none !important;
+            color: #fff;
+        }
+
+        * {
+            cursor: none !important;
+            font-family: 'RAMI' !important;
+        }
+
+        /* Custom rotating cursor */
+        #rotating-cursor {
+            position: fixed;
+            width: 32px;
+            height: 32px;
+            background-image: url('assets/cursors/cursor.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            z-index: 10001;
+            transform-origin: center center;
+            animation: rotateCursor 4s linear infinite;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        #rotating-cursor.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        @keyframes rotateCursor {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #unity-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: black;
+            z-index: 100;
+        }
+
+        #unity-canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background: #000;
+        }
+
+        #fade-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: transparent;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 2s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: transparent;
+            pointer-events: none;
+        }
+
+        #portfolio-content {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            background: black url('assets/images/background.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        #artwork-display {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        #artwork-media {
+            max-width: 60vw;
+            max-height: 70vh;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+            will-change: opacity;
+        }
+
+        #artwork-media.fade-out {
+            opacity: 0;
+        }
+
+        /* Unity Loading indicator - only percentage numbers */
+        #unity-loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: 'RAMI' !important;
+            font-size: 4em;
+            z-index: 200;
+            opacity: 1;
+            text-align: center;
+        }
+
+        /* Portfolio transition loading */
+        #portfolio-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            z-index: 1500;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            transition: opacity 1s ease-out;
+        }
+
+        #portfolio-loading.fade-out {
+            opacity: 0;
+        }
+
+        #portfolio-loading-video {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+        }
+
+        /* Title text anchored to bottom center */
+        #custom-cursor {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            font-family: 'RAMI' !important;
+            font-size: 16px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            animation: breathe 2s ease-in-out infinite;
+            will-change: transform, opacity, color;
+            transform: translateX(-50%);
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                opacity: 0.44;
+                transform: translateX(-50%) scale(0.44);
+                color: #ffff00;
+            }
+            16.66% {
+                color: #ccff00;
+            }
+            33.33% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1.13);
+                color: #99ff00;
+            }
+            50% {
+                color: #66ff33;
+            }
+            66.66% {
+                color: #33ff99;
+            }
+            83.33% {
+                color: #00ccff;
+            }
+        }
+
+        #custom-cursor.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Custom rotating cursor -->
+    <div id="rotating-cursor"></div>
+
+    <!-- Unity loading indicator -->
+    <div id="unity-loading">0%</div>
+
+    <!-- Portfolio transition loading -->
+    <div id="portfolio-loading">
+        <video id="portfolio-loading-video" muted autoplay loop playbackRate="0.66">
+            <source src="assets/videos/transition.mp4" type="video/mp4">
+            <source src="assets/videos/transition.webm" type="video/webm">
+        </video>
+    </div>
+
+    <!-- Unity WebGL containers -->
+    <div id="fade-overlay"></div>
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+
+    <!-- Portfolio content -->
+    <div id="portfolio-content">
+        <div id="artwork-display">
+            <img id="artwork-media" src="" alt="Artwork" style="opacity: 0;">
+        </div>
+        <div id="custom-cursor"></div>
+    </div>
+
+    <!-- Unity loader -->
+    <script src="Build/Table.loader.js"></script>
+
+    <script>
+        let unityInstance = null;
+        let currentArtworkName = '';
+
+        // Rotating cursor system
+        const rotatingCursor = {
+            element: null,
+            
+            init() {
+                this.element = document.getElementById('rotating-cursor');
+                
+                // Track mouse movement
+                document.addEventListener('mousemove', (e) => {
+                    if (this.element) {
+                        this.element.style.left = (e.clientX - 16) + 'px'; // Center cursor (16px offset for 32px cursor)
+                        this.element.style.top = (e.clientY - 16) + 'px';
+                    }
+                });
+                
+                console.log("Rotating cursor initialized (hidden)");
+            },
+            
+            show() {
+                if (this.element) {
+                    this.element.classList.add('show');
+                    console.log("Rotating cursor shown");
+                }
+            },
+            
+            hide() {
+                if (this.element) {
+                    this.element.classList.remove('show');
+                    console.log("Rotating cursor hidden");
+                }
+            }
+        };
+
+        // Initialize rotating cursor immediately
+        document.addEventListener('DOMContentLoaded', () => {
+            rotatingCursor.init();
+        });
+
+        // Also initialize on window load as backup
+        window.addEventListener('load', () => {
+            rotatingCursor.init();
+        });
+
+        // Audio System for Portfolio
+        const audioSystem = {
+            backgroundAudio: null,
+            clickAudio: null,
+            audioInitialized: false,
+            
+            async init() {
+                try {
+                    // Initialize background audio
+                    this.backgroundAudio = new Audio('assets/audio/background.mp3');
+                    this.backgroundAudio.loop = true;
+                    this.backgroundAudio.volume = 0.3; // 30% volume
+                    
+                    // Initialize click sound
+                    this.clickAudio = new Audio('assets/audio/click.mp3');
+                    this.clickAudio.volume = 0.5; // 50% volume
+                    
+                    console.log("Audio system initialized");
+                    this.audioInitialized = true;
+                } catch (error) {
+                    console.warn("Audio initialization failed:", error);
+                }
+            },
+            
+            async startBackgroundMusic() {
+                if (this.backgroundAudio && this.audioInitialized) {
+                    try {
+                        await this.backgroundAudio.play();
+                        console.log("Background music started");
+                    } catch (error) {
+                        console.warn("Background music failed to start:", error);
+                    }
+                }
+            },
+            
+            playClickSound() {
+                if (this.clickAudio && this.audioInitialized) {
+                    this.clickAudio.currentTime = 0; // Reset to start
+                    this.clickAudio.play().catch(e => console.warn("Click sound failed:", e));
+                }
+            },
+            
+            stopBackgroundMusic() {
+                if (this.backgroundAudio) {
+                    this.backgroundAudio.pause();
+                    this.backgroundAudio.currentTime = 0;
+                }
+            }
+        };
+
+        // Portfolio Loading System
+        const portfolioLoader = {
+            isLoading: false,
+            startTime: null,
+            duration: 8000, // 8 seconds loading
+            
+            show() {
+                const loadingElement = document.getElementById('portfolio-loading');
+                const videoElement = document.getElementById('portfolio-loading-video');
+                
+                loadingElement.style.display = 'flex';
+                loadingElement.classList.remove('fade-out');
+                
+                // Set video playback speed to 0.66x
+                if (videoElement) {
+                    videoElement.playbackRate = 0.66;
+                }
+                
+                this.isLoading = true;
+                this.startTime = Date.now();
+                this.updateProgress();
+                
+                console.log("Portfolio loading started");
+            },
+            
+            updateProgress() {
+                if (!this.isLoading) return;
+                
+                const elapsed = Date.now() - this.startTime;
+                const progress = Math.min(elapsed / this.duration, 1);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(() => this.updateProgress());
+                } else {
+                    this.fadeOutAndComplete();
+                }
+            },
+            
+            fadeOutAndComplete() {
+                const loadingElement = document.getElementById('portfolio-loading');
+                
+                // Start fade out
+                loadingElement.classList.add('fade-out');
+                
+                // Complete after fade out finishes
+                setTimeout(() => {
+                    this.complete();
+                }, 1000); // Wait for 1s fade out transition
+            },
+            
+            complete() {
+                this.isLoading = false;
+                document.getElementById('portfolio-loading').style.display = 'none';
+                document.getElementById('portfolio-content').style.display = 'block';
+                
+                // Initialize portfolio systems
+                customCursor.init();
+                titleManager.init();
+                audioSystem.startBackgroundMusic();
+                artworkManager.loadMediaFiles();
+                
+                console.log("Portfolio loading complete - portfolio active");
+            }
+        };
+
+        // Proper Unity Audio Initialization
+        const unityAudioSystem = {
+            context: null,
+            initialized: false,
+            
+            async initialize() {
+                if (this.initialized) return;
+                
+                try {
+                    // Create Web Audio context for Unity
+                    this.context = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Resume context if suspended (required by browsers)
+                    if (this.context.state === 'suspended') {
+                        await this.context.resume();
+                    }
+                    
+                    // Set global Unity audio context
+                    window.unityAudioContext = this.context;
+                    
+                    this.initialized = true;
+                    console.log("Unity audio context initialized successfully");
+                } catch (error) {
+                    console.error("Unity audio initialization failed:", error);
+                }
+            },
+            
+            // Ensure audio context is active for Unity
+            ensureActive() {
+                if (this.context && this.context.state === 'suspended') {
+                    this.context.resume();
+                }
+            }
+        };
+
+        // Initialize audio on first user interaction
+        function initializeAllAudio() {
+            unityAudioSystem.initialize();
+            audioSystem.init();
+        }
+
+        // Add event listeners for audio initialization
+        document.addEventListener('click', initializeAllAudio, { once: true });
+        document.addEventListener('keydown', initializeAllAudio, { once: true });
+        document.addEventListener('touchstart', initializeAllAudio, { once: true });
+
+        // Title Management System - Direct correspondence to artwork
+        const titleManager = {
+            artworkTitles: [
+                "FIGURE PATERNELLE",           // artwork01
+                "STUDY",          // artwork02
+                "MACBETH",           // artwork03
+                "HANGING STUDY",          // artwork04
+                "STUDY",           // artwork05
+                "FIGURE",           // artwork06
+                "STUDY",         // artwork07
+                "STUDY",          // artwork08
+                "SABBATH",           // artwork09
+                "A GATHERING",           // artwork10
+                "AUGUST",        // artwork11
+                "DRAGONFRUIT",         // artwork12
+                "SKETCHBOOK PAGE",      // artwork13
+                "TETE STUDIES",      // artwork14
+                "DANIEL",       // artwork15
+                "FLYING MEN",       // artwork16
+                "WATCHER IN THE CLOUDS",     // artwork17
+                "PINA",      // artwork18
+                "MAREE",      // artwork19
+                "FLAMMES",       // artwork20
+                "SKETCHBOOK PAGE",    // artwork21
+                "PLANETFILTH",   // artwork22
+                "BUDAPEST",    // artwork23
+                "FLOWER STUDIES",   // artwork24
+                "CARNIVOR",    // artwork25
+                "ENFANCE",    // artwork26
+                "INTRODUCTION",  // artwork27
+                "PELERIN",   // artwork28
+                "ESCARGOT",    // artwork29
+                "ACHILLES",       // artwork30
+                "RING",    // artwork31
+                "LECTEUR",   // artwork32
+                "GESHA",    // artwork33
+                "SEED",   // artwork34
+                "FAIRY",    // artwork35
+                "LUMIERE ABOMINABLE",    // artwork36
+                "LOUE",  // artwork37
+                "BEHAVIOUR",   // artwork38
+                "HAPPY THOUGHTS",    // artwork39
+                "ARBRE",        // artwork40
+                "ANGEL",     // artwork41
+                "TEST",    // artwork42
+                "RAT",     // artwork43
+                "FLUIDGUN",    // artwork44
+                "OMELETTE",     // artwork45
+                "FORTY-SIXTH ARTWORK TITLE",     // artwork46
+                "FORTY-SEVENTH ARTWORK TITLE",   // artwork47
+                "FORTY-EIGHTH ARTWORK TITLE",    // artwork48
+                "FORTY-NINTH ARTWORK TITLE",     // artwork49
+                "FIFTIETH ARTWORK TITLE",        // artwork50
+                "FIFTY-FIRST ARTWORK TITLE",     // artwork51
+                "FIFTY-SECOND ARTWORK TITLE"     // artwork52
+            ],
+            
+            init() {
+                console.log(`Title system initialized with ${this.artworkTitles.length} titles`);
+            },
+            
+            getTitleForArtwork(artworkIndex) {
+                const titleIndex = artworkIndex - 1;
+                
+                if (titleIndex >= 0 && titleIndex < this.artworkTitles.length) {
+                    return this.artworkTitles[titleIndex];
+                } else {
+                    return `ARTWORK ${artworkIndex}`;
+                }
+            }
+        };
+
+        // Title management - Bottom center positioning
+        const customCursor = {
+            element: null,
+            
+            init() {
+                this.element = document.getElementById('custom-cursor');
+            },
+            
+            show(text) {
+                if (this.element) {
+                    this.element.textContent = text;
+                    this.element.classList.add('show');
+                }
+            },
+            
+            hide() {
+                if (this.element) {
+                    this.element.classList.remove('show');
+                }
+            },
+            
+            update(title) {
+                this.show(title);
+            }
+        };
+
+        // Perfect Random Display System - Fixed Mathematical Solution
+        const artworkManager = {
+            mediaFiles: [],
+            shuffledQueue: [],
+            currentQueueIndex: 0,
+            isLoading: false,
+            
+            async loadMediaFiles() {
+                console.log("Loading artwork files...");
+                
+                const extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'];
+                
+                for (let i = 1; i <= 100; i++) {
+                    for (let ext of extensions) {
+                        try {
+                            const paddedNumber = i.toString().padStart(2, '0');
+                            const urlWithZero = `assets/artwork/artwork${paddedNumber}.${ext}`;
+                            const existsWithZero = await this.checkFileExists(urlWithZero);
+                            
+                            if (existsWithZero) {
+                                this.mediaFiles.push({
+                                    url: urlWithZero,
+                                    type: ['mp4', 'webm', 'mov'].includes(ext) ? 'video' : 'image',
+                                    name: `artwork${paddedNumber}.${ext}`,
+                                    index: i,
+                                    id: this.mediaFiles.length
+                                });
+                                console.log(`Found: ${urlWithZero}`);
+                                continue;
+                            }
+                            
+                            const urlWithoutZero = `assets/artwork/artwork${i}.${ext}`;
+                            const existsWithoutZero = await this.checkFileExists(urlWithoutZero);
+                            
+                            if (existsWithoutZero) {
+                                this.mediaFiles.push({
+                                    url: urlWithoutZero,
+                                    type: ['mp4', 'webm', 'mov'].includes(ext) ? 'video' : 'image',
+                                    name: `artwork${i}.${ext}`,
+                                    index: i,
+                                    id: this.mediaFiles.length
+                                });
+                                console.log(`Found: ${urlWithoutZero}`);
+                            }
+                        } catch (error) {
+                            // File doesn't exist, continue
+                        }
+                    }
+                }
+                
+                console.log(`✅ TOTAL LOADED: ${this.mediaFiles.length} artwork files`);
+                console.log(`Files loaded: [${this.mediaFiles.map(f => f.name.match(/artwork(\d+)/)[1]).join(', ')}]`);
+                
+                if (this.mediaFiles.length > 0) {
+                    this.generateNewCycle();
+                    this.showNextArtwork();
+                } else {
+                    console.warn("❌ No artwork files found. Make sure files are in assets/artwork/ folder");
+                }
+            },
+            
+            async checkFileExists(url) {
+                try {
+                    const response = await fetch(url, { method: 'HEAD' });
+                    return response.ok;
+                } catch {
+                    return false;
+                }
+            },
+            
+            // Corrected Fisher-Yates Shuffle Algorithm
+            fisherYatesShuffle(array) {
+                const shuffled = [...array]; // Create a copy
+                
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    // Swap elements
+                    const temp = shuffled[i];
+                    shuffled[i] = shuffled[j];
+                    shuffled[j] = temp;
+                }
+                
+                return shuffled;
+            },
+            
+            generateNewCycle() {
+                console.log("=== GENERATING NEW CYCLE ===");
+                
+                // Create array of indices [0, 1, 2, ..., n-1] where n = number of media files
+                const indices = [];
+                for (let i = 0; i < this.mediaFiles.length; i++) {
+                    indices.push(i);
+                }
+                
+                // Apply Fisher-Yates shuffle for perfect randomization
+                this.shuffledQueue = this.fisherYatesShuffle(indices);
+                this.currentQueueIndex = 0;
+                
+                console.log(`New cycle created with ${this.shuffledQueue.length} images`);
+                console.log(`Shuffled indices: [${this.shuffledQueue.join(', ')}]`);
+                console.log(`This means order: [${this.shuffledQueue.map(idx => this.mediaFiles[idx].name.match(/artwork(\d+)/)[1]).join(', ')}]`);
+            },
+            
+            getNextImageIndex() {
+                // If we've shown all images in current cycle, generate new cycle
+                if (this.currentQueueIndex >= this.shuffledQueue.length) {
+                    console.log("=== CYCLE COMPLETE - ALL IMAGES SHOWN ONCE ===");
+                    this.generateNewCycle();
+                }
+                
+                // Get the next image index from our shuffled queue
+                const nextIndex = this.shuffledQueue[this.currentQueueIndex];
+                this.currentQueueIndex++;
+                
+                const artworkNumber = this.mediaFiles[nextIndex].name.match(/artwork(\d+)/)[1];
+                console.log(`Next image: Array index ${nextIndex} (artwork${artworkNumber}) - ${this.currentQueueIndex}/${this.shuffledQueue.length} shown in cycle`);
+                
+                return nextIndex;
+            },
+            
+            showNextArtwork() {
+                if (this.isLoading || this.mediaFiles.length === 0) return;
+                
+                this.isLoading = true;
+                const artworkMedia = document.getElementById('artwork-media');
+                
+                if (artworkMedia) {
+                    artworkMedia.classList.add('fade-out');
+                }
+                
+                setTimeout(() => {
+                    const imageIndex = this.getNextImageIndex();
+                    const mediaFile = this.mediaFiles[imageIndex];
+                    
+                    currentArtworkName = mediaFile.name;
+                    
+                    const artworkDisplay = document.getElementById('artwork-display');
+                    
+                    const existingMedia = document.getElementById('artwork-media');
+                    if (existingMedia && existingMedia.parentNode) {
+                        existingMedia.parentNode.removeChild(existingMedia);
+                    }
+                    
+                    const newMedia = mediaFile.type === 'video' 
+                        ? document.createElement('video')
+                        : document.createElement('img');
+                    
+                    newMedia.id = 'artwork-media';
+                    newMedia.style.maxWidth = '60vw';
+                    newMedia.style.maxHeight = '70vh';
+                    newMedia.style.objectFit = 'contain';
+                    newMedia.style.transition = 'opacity 0.3s ease';
+                    newMedia.style.opacity = '0';
+                    
+                    if (mediaFile.type === 'video') {
+                        newMedia.autoplay = true;
+                        newMedia.loop = true;
+                        newMedia.muted = true;
+                        newMedia.controls = false;
+                    }
+                    
+                    newMedia.onload = newMedia.onloadeddata = () => {
+                        newMedia.style.opacity = '1';
+                        this.isLoading = false;
+                        
+                        const artworkNumber = mediaFile.index;
+                        const properTitle = titleManager.getTitleForArtwork(artworkNumber);
+                        customCursor.update(properTitle);
+                        
+                        // Play click sound when artwork changes
+                        audioSystem.playClickSound();
+                        
+                        console.log(`✅ Showing: ${mediaFile.name} | Title: "${properTitle}" | Cycle progress: ${this.currentQueueIndex}/${this.shuffledQueue.length}`);
+                    };
+                    
+                    newMedia.onerror = () => {
+                        console.error(`❌ Failed to load: ${mediaFile.name}`);
+                        this.isLoading = false;
+                        setTimeout(() => this.showNextArtwork(), 500);
+                    };
+                    
+                    newMedia.src = mediaFile.url;
+                    newMedia.alt = mediaFile.name;
+                    
+                    artworkDisplay.appendChild(newMedia);
+                    
+                }, 300);
+            },
+            
+            showRandomArtwork() {
+                this.showNextArtwork();
+            }
+        };
+
+        function UnlockWebsitePortfolio() {
+            // Hide Unity elements
+            document.getElementById('unity-loading').style.display = 'none';
+            document.getElementById('fade-overlay').style.display = 'none';
+            document.getElementById('unity-container').style.display = 'none';
+            
+            // Keep cursor hidden during transition
+            rotatingCursor.hide();
+            
+            // Start portfolio loading transition
+            portfolioLoader.show();
+            
+            console.log("Unity game completed - starting portfolio transition");
+        }
+
+        window.UnlockWebsitePortfolio = UnlockWebsitePortfolio;
+
+        window.addEventListener('load', () => {
+            const canvas = document.querySelector("#unity-canvas");
+            if (typeof createUnityInstance === 'function') {
+                createUnityInstance(canvas, {
+                    dataUrl: "Build/Table.data",
+                    frameworkUrl: "Build/Table.framework.js",
+                    codeUrl: "Build/Table.wasm",
+                    streamingAssetsUrl: "StreamingAssets",
+                    companyName: "DefaultCompany",
+                    productName: "Table",
+                    productVersion: "0.1.0",
+                    matchWebGLToCanvasSize: false,
+                    devicePixelRatio: window.devicePixelRatio || 1
+                }, (progress) => {
+                    const loadingElement = document.getElementById('unity-loading');
+                    const percentage = Math.round(progress * 100);
+                    loadingElement.textContent = `${percentage}%`;
+                    console.log(`Unity Loading: ${percentage}%`);
+                }).then((instance) => {
+                    unityInstance = instance;
+                    
+                    // Ensure Unity audio is properly initialized
+                    unityAudioSystem.ensureActive();
+                    
+                    // Hide loading when Unity is ready
+                    document.getElementById('unity-loading').style.display = 'none';
+                    
+                    function resizeUnityCanvas() {
+                        const rect = canvas.getBoundingClientRect();
+                        canvas.width = rect.width * (window.devicePixelRatio || 1);
+                        canvas.height = rect.height * (window.devicePixelRatio || 1);
+                    }
+                    resizeUnityCanvas();
+                    window.addEventListener('resize', resizeUnityCanvas);
+                }).catch((message) => {
+                    console.error("Unity Error:", message);
+                    UnlockWebsitePortfolio();
+                });
+            } else {
+                alert("Unity loader not found.");
+                UnlockWebsitePortfolio();
+            }
+        });
+
+        // Setup portfolio event listeners after loading completes
+        function setupPortfolioEvents() {
+            document.getElementById('portfolio-content').addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Click detected - flipping to random artwork");
+                artworkManager.showRandomArtwork();
+            });
+            
+            document.getElementById('portfolio-content').addEventListener('mouseenter', () => {
+                if (currentArtworkName) {
+                    const match = currentArtworkName.match(/artwork(\d+)/);
+                    if (match) {
+                        const artworkNumber = parseInt(match[1]);
+                        const properTitle = titleManager.getTitleForArtwork(artworkNumber);
+                        customCursor.show(properTitle);
+                    }
+                }
+            });
+            
+            document.getElementById('portfolio-content').addEventListener('mouseleave', () => {
+                customCursor.hide();
+            });
+        }
+
+        // Call setup when portfolio loading completes
+        portfolioLoader.complete = function() {
+            this.isLoading = false;
+            document.getElementById('portfolio-loading').style.display = 'none';
+            document.getElementById('portfolio-content').style.display = 'block';
+            
+            // Initialize portfolio systems
+            customCursor.init();
+            titleManager.init();
+            audioSystem.startBackgroundMusic();
+            artworkManager.loadMediaFiles();
+            
+            // Show rotating cursor when portfolio is active
+            rotatingCursor.show();
+            
+            // Setup event listeners
+            setupPortfolioEvents();
+            
+            console.log("Portfolio loading complete - portfolio active");
+        };
+        let cursorTimeout;
+        const hideDelay = 3000;
+
+        function resetCursorTimer() {
+            if (document.getElementById('portfolio-content').style.display === 'block') {
+                clearTimeout(cursorTimeout);
+                cursorTimeout = setTimeout(() => {
+                    customCursor.hide();
+                }, hideDelay);
+            }
+        }
+
+        ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(evt =>
+            document.addEventListener(evt, resetCursorTimer)
+        );
+    </script>
+</body>
+</html>
