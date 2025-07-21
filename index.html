@@ -16,6 +16,15 @@
             font-display: swap;
         }
 
+        /* ✅ GENSCO font for bottom right text */
+        @font-face {
+            font-family: 'GENSCO';
+            src: url('assets/fonts/GENSCO.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
@@ -79,6 +88,7 @@
             height: 100vh;
             display: block;
             background: #000;
+            touch-action: none; /* Prevent default touch behaviors for Unity */
         }
 
         #fade-overlay {
@@ -217,6 +227,60 @@
         #custom-cursor.show {
             opacity: 1;
         }
+
+        /* ✅ NEW: Bottom right GENSCO text */
+        #bottom-right-text {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-family: 'GENSCO' !important;
+            font-size: 14px;
+            color: #ffffff;
+            opacity: 0.7;
+            pointer-events: none;
+            z-index: 9998;
+            text-align: right;
+            line-height: 1.2;
+        }
+
+        /* ✅ NEW: Mobile touch area (invisible overlay for touch events) */
+        #mobile-touch-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 15;
+            background: transparent;
+            display: none;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Show mobile touch area only when portfolio is active */
+        #portfolio-content.active #mobile-touch-area {
+            display: block;
+        }
+
+        /* ✅ Mobile-specific styles */
+        @media (max-width: 768px) {
+            #artwork-media {
+                max-width: 90vw;
+                max-height: 80vh;
+            }
+            
+            #custom-cursor {
+                font-size: 14px;
+            }
+            
+            #bottom-right-text {
+                font-size: 12px;
+                bottom: 15px;
+                right: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -243,10 +307,18 @@
 
     <!-- Portfolio content -->
     <div id="portfolio-content">
+        <!-- ✅ NEW: Mobile touch area -->
+        <div id="mobile-touch-area"></div>
+        
         <div id="artwork-display">
             <img id="artwork-media" src="" alt="Artwork" style="opacity: 0;">
         </div>
         <div id="custom-cursor"></div>
+        
+        <!-- ✅ NEW: Bottom right GENSCO text -->
+        <div id="bottom-right-text" style="display: none;">
+            ezrasilva@proton.me
+        </div>
     </div>
 
     <!-- Unity loader -->
@@ -256,6 +328,35 @@
         let unityInstance = null;
         let currentArtworkName = '';
 
+        // ✅ NEW: Unity-Website Touch Coordination
+        window.unityTouchActive = false;
+        window.SetUnityTouchMode = function(active) {
+            window.unityTouchActive = active;
+            console.log("Unity touch mode:", active ? "ACTIVE" : "INACTIVE");
+            
+            // Disable/enable website touch accordingly
+            if (active) {
+                // Unity is handling touches - disable website touch
+                const mobileArea = document.getElementById('mobile-touch-area');
+                if (mobileArea) {
+                    mobileArea.style.pointerEvents = 'none';
+                }
+            } else {
+                // Unity finished - enable website touch
+                const mobileArea = document.getElementById('mobile-touch-area');
+                if (mobileArea) {
+                    mobileArea.style.pointerEvents = 'auto';
+                }
+            }
+        };
+
+        // ✅ NEW: Mobile detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
+                         window.innerWidth <= 768;
+
+        console.log("Device detected:", isMobile ? "Mobile" : "Desktop");
+
         // Rotating cursor system
         const rotatingCursor = {
             element: null,
@@ -263,19 +364,21 @@
             init() {
                 this.element = document.getElementById('rotating-cursor');
                 
-                // Track mouse movement
-                document.addEventListener('mousemove', (e) => {
-                    if (this.element) {
-                        this.element.style.left = (e.clientX - 16) + 'px'; // Center cursor (16px offset for 32px cursor)
-                        this.element.style.top = (e.clientY - 16) + 'px';
-                    }
-                });
+                // Track mouse movement (desktop only)
+                if (!isMobile) {
+                    document.addEventListener('mousemove', (e) => {
+                        if (this.element) {
+                            this.element.style.left = (e.clientX - 16) + 'px'; // Center cursor (16px offset for 32px cursor)
+                            this.element.style.top = (e.clientY - 16) + 'px';
+                        }
+                    });
+                }
                 
                 console.log("Rotating cursor initialized (hidden)");
             },
             
             show() {
-                if (this.element) {
+                if (this.element && !isMobile) { // Only show on desktop
                     this.element.classList.add('show');
                     console.log("Rotating cursor shown");
                 }
@@ -402,7 +505,9 @@
             complete() {
                 this.isLoading = false;
                 document.getElementById('portfolio-loading').style.display = 'none';
-                document.getElementById('portfolio-content').style.display = 'block';
+                const portfolioContent = document.getElementById('portfolio-content');
+                portfolioContent.style.display = 'block';
+                portfolioContent.classList.add('active'); // ✅ NEW: Add active class
                 
                 // Initialize portfolio systems
                 customCursor.init();
@@ -471,12 +576,12 @@
                 "MAUVAISES HABITUDES I",           // artwork06
                 "BOY",         // artwork07
                 "HAPPY ENDING",          // artwork08
-                "SABBATH ON MONDAYS",           // artwork09
+                "ON MONDAYS",           // artwork09
                 "A GATHERING",           // artwork10
                 "AUGUST",        // artwork11
                 "LOU II",         // artwork12
                 "SPOON",      // artwork13
-                "LA FORET",      // artwork14
+                "FLEUVE",      // artwork14
                 "FELIX",       // artwork15
                 "PRAYER BEADS",       // artwork16
                 "CLOUDS",     // artwork17
@@ -487,7 +592,7 @@
                 "PLANET FILTH",   // artwork22
                 "BUDAPEST PAGE",    // artwork23
                 "FLOWER STUDIES",   // artwork24
-                "CARNIVOR",    // artwork25
+                "VAGUE",    // artwork25
                 "ENFANCE",    // artwork26
                 "LOU III",  // artwork27
                 "ABLATION",   // artwork28
@@ -520,13 +625,13 @@
                 "AS ANY OTHER DOOR",     // artwork55
                 "TOURNESOL",     // artwork56
                 "JANE",     // artwork57
-                "PICNIQUE",     // artwork58
+                "PICNIC",     // artwork58
                 "INTRODUCTION",     // artwork59
                 "VER",     // artwork60
                 "ARCHIPELAGO",     // artwork61
                 "5AM",     // artwork62
                 "FUMEE",     // artwork63
-                "KISS",     // artwork64
+                "MONOLOGUE",     // artwork64
                 "MAUVAISES HABITUDES V",     // artwork65
                 "COMA WITH HIS THOUGHTS",     // artwork66
                 "ESCARGOT",     // artwork67
@@ -586,11 +691,69 @@
             }
         };
 
+        // ✅ NEW: Mobile Touch System
+        const mobileTouch = {
+            touchArea: null,
+            
+            init() {
+                this.touchArea = document.getElementById('mobile-touch-area');
+                if (this.touchArea && isMobile) {
+                    this.setupTouchEvents();
+                    console.log("Mobile touch system initialized");
+                }
+            },
+            
+            setupTouchEvents() {
+                let touchStartTime = 0;
+                
+                this.touchArea.addEventListener('touchstart', (e) => {
+                    // Check if Unity is handling touches
+                    if (window.unityTouchActive) {
+                        console.log("Touch ignored - Unity is active");
+                        return;
+                    }
+                    
+                    e.preventDefault();
+                    touchStartTime = Date.now();
+                    console.log("Touch started");
+                }, { passive: false });
+                
+                this.touchArea.addEventListener('touchend', (e) => {
+                    // Check if Unity is handling touches
+                    if (window.unityTouchActive) {
+                        console.log("Touch end ignored - Unity is active");
+                        return;
+                    }
+                    
+                    e.preventDefault();
+                    const touchDuration = Date.now() - touchStartTime;
+                    
+                    // Only register as tap if touch duration is short (< 500ms)
+                    if (touchDuration < 500) {
+                        console.log("Touch tap detected - triggering artwork change");
+                        artworkManager.showNextArtwork();
+                    }
+                }, { passive: false });
+                
+                // Prevent context menu and other touch behaviors
+                this.touchArea.addEventListener('contextmenu', (e) => {
+                    if (window.unityTouchActive) return;
+                    e.preventDefault();
+                });
+                
+                this.touchArea.addEventListener('touchmove', (e) => {
+                    if (window.unityTouchActive) return;
+                    e.preventDefault();
+                }, { passive: false });
+            }
+        };
+
         // Chronological Display System
         const artworkManager = {
             mediaFiles: [],
             currentIndex: 0,
             isLoading: false,
+            viewedArtworks: new Set(), // Track viewed artworks
             
             async loadMediaFiles() {
                 console.log("Loading artwork files...");
@@ -698,6 +861,14 @@
                         newMedia.style.opacity = '1';
                         this.isLoading = false;
                         
+                        // Track viewed artwork
+                        this.viewedArtworks.add(mediaFile.index);
+                        
+                        // Show contact info if all artworks viewed
+                        if (this.viewedArtworks.size === this.mediaFiles.length) {
+                            document.getElementById('bottom-right-text').style.display = 'block';
+                        }
+                        
                         const artworkNumber = mediaFile.index;
                         const properTitle = titleManager.getTitleForArtwork(artworkNumber);
                         customCursor.update(properTitle);
@@ -728,6 +899,9 @@
         };
 
         function UnlockWebsitePortfolio() {
+            // ✅ NEW: Disable Unity touch mode
+            window.SetUnityTouchMode(false);
+            
             // Hide Unity elements
             document.getElementById('unity-loading').style.display = 'none';
             document.getElementById('fade-overlay').style.display = 'none';
@@ -741,6 +915,23 @@
             
             console.log("Unity game completed - starting portfolio transition");
         }
+
+        /*
+        ✅ UNITY INTEGRATION INSTRUCTIONS:
+        
+        In your Unity SimpleTouchController script, add these calls:
+        
+        1. When Unity game starts handling input:
+           Application.ExternalEval("window.SetUnityTouchMode(true);");
+        
+        2. When Unity finishes (before calling UnlockWebsitePortfolio):
+           Application.ExternalEval("window.SetUnityTouchMode(false);");
+        
+        3. When transitioning to portfolio:
+           Application.ExternalEval("window.UnlockWebsitePortfolio();");
+        
+        This ensures proper touch coordination between Unity and the website.
+        */
 
         window.UnlockWebsitePortfolio = UnlockWebsitePortfolio;
 
@@ -765,6 +956,9 @@
                 }).then((instance) => {
                     unityInstance = instance;
                     
+                    // ✅ NEW: Enable Unity touch mode when game is ready
+                    window.SetUnityTouchMode(true);
+                    
                     // Ensure Unity audio is properly initialized
                     unityAudioSystem.ensureActive();
                     
@@ -780,43 +974,55 @@
                     window.addEventListener('resize', resizeUnityCanvas);
                 }).catch((message) => {
                     console.error("Unity Error:", message);
+                    // ✅ NEW: Ensure Unity touch mode is disabled on error
+                    window.SetUnityTouchMode(false);
                     UnlockWebsitePortfolio();
                 });
             } else {
-                alert("Unity loader not found.");
+                console.error("Unity loader not found.");
+                // ✅ NEW: Ensure Unity touch mode is disabled if loader missing
+                window.SetUnityTouchMode(false);
                 UnlockWebsitePortfolio();
             }
         });
 
         // Setup portfolio event listeners after loading completes
         function setupPortfolioEvents() {
-            document.getElementById('portfolio-content').addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Click detected - flipping to random artwork");
-                artworkManager.showNextArtwork();
-            });
-            
-            document.getElementById('portfolio-content').addEventListener('mouseenter', () => {
-                if (currentArtworkName) {
-                    const match = currentArtworkName.match(/artwork(\d+)/);
-                    if (match) {
-                        const artworkNumber = parseInt(match[1]);
-                        const properTitle = titleManager.getTitleForArtwork(artworkNumber);
-                        customCursor.show(properTitle);
+            // Desktop click events (only if not mobile)
+            if (!isMobile) {
+                document.getElementById('portfolio-content').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log("Desktop click detected - flipping to next artwork");
+                    artworkManager.showNextArtwork();
+                });
+                
+                document.getElementById('portfolio-content').addEventListener('mouseenter', () => {
+                    if (currentArtworkName) {
+                        const match = currentArtworkName.match(/artwork(\d+)/);
+                        if (match) {
+                            const artworkNumber = parseInt(match[1]);
+                            const properTitle = titleManager.getTitleForArtwork(artworkNumber);
+                            customCursor.show(properTitle);
+                        }
                     }
-                }
-            });
+                });
+                
+                document.getElementById('portfolio-content').addEventListener('mouseleave', () => {
+                    customCursor.hide();
+                });
+            }
             
-            document.getElementById('portfolio-content').addEventListener('mouseleave', () => {
-                customCursor.hide();
-            });
+            // ✅ NEW: Initialize mobile touch events
+            mobileTouch.init();
         }
 
         // Call setup when portfolio loading completes
         portfolioLoader.complete = function() {
             this.isLoading = false;
             document.getElementById('portfolio-loading').style.display = 'none';
-            document.getElementById('portfolio-content').style.display = 'block';
+            const portfolioContent = document.getElementById('portfolio-content');
+            portfolioContent.style.display = 'block';
+            portfolioContent.classList.add('active'); // ✅ NEW: Add active class
             
             // Initialize portfolio systems
             customCursor.init();
@@ -824,14 +1030,17 @@
             audioSystem.startBackgroundMusic();
             artworkManager.loadMediaFiles();
             
-            // Show rotating cursor when portfolio is active
-            rotatingCursor.show();
+            // Show rotating cursor when portfolio is active (desktop only)
+            if (!isMobile) {
+                rotatingCursor.show();
+            }
             
             // Setup event listeners
             setupPortfolioEvents();
             
             console.log("Portfolio loading complete - portfolio active");
         };
+
         let cursorTimeout;
         const hideDelay = 3000;
 
@@ -844,9 +1053,19 @@
             }
         }
 
-        ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(evt =>
-            document.addEventListener(evt, resetCursorTimer)
-        );
+        // ✅ Modified: Only add mouse events for desktop
+        if (!isMobile) {
+            ['mousemove', 'mousedown', 'keydown'].forEach(evt =>
+                document.addEventListener(evt, resetCursorTimer)
+            );
+        }
+
+        // Touch events for mobile cursor timer
+        if (isMobile) {
+            ['touchstart', 'touchmove'].forEach(evt =>
+                document.addEventListener(evt, resetCursorTimer)
+            );
+        }
     </script>
 </body>
 </html>
