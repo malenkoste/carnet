@@ -7,7 +7,6 @@
     <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
     <style>
-        /* ✅ RAMI font */
         @font-face {
             font-family: 'RAMI';
             src: url('assets/fonts/RAMI.woff2') format('woff2');
@@ -16,7 +15,6 @@
             font-display: block;
         }
 
-        /* ✅ GENSCO font for bottom right text */
         @font-face {
             font-family: 'GENSCO';
             src: url('assets/fonts/GENSCO.woff2') format('woff2');
@@ -39,7 +37,6 @@
             font-family: 'RAMI' !important;
         }
 
-        /* Custom rotating cursor */
         #rotating-cursor {
             position: fixed;
             width: 32px;
@@ -88,7 +85,7 @@
             height: 100vh;
             display: block;
             background: #000;
-            touch-action: none; /* Prevent default touch behaviors for Unity */
+            touch-action: none;
         }
 
         #fade-overlay {
@@ -142,7 +139,6 @@
             opacity: 0;
         }
 
-        /* Unity Loading indicator - only percentage numbers */
         #unity-loading {
             position: fixed;
             top: 50%;
@@ -156,7 +152,6 @@
             text-align: center;
         }
 
-        /* Portfolio transition loading */
         #portfolio-loading {
             position: fixed;
             top: 0;
@@ -182,7 +177,6 @@
             object-fit: cover;
         }
 
-        /* Title text anchored to bottom center */
         #custom-cursor {
             position: fixed;
             bottom: 20px;
@@ -228,7 +222,6 @@
             opacity: 1;
         }
 
-        /* ✅ NEW: Bottom right GENSCO text */
         #bottom-right-text {
             position: fixed;
             bottom: 20px;
@@ -243,7 +236,6 @@
             line-height: 1.2;
         }
 
-        /* ✅ NEW: Mobile touch area (invisible overlay for touch events) */
         #mobile-touch-area {
             position: fixed;
             top: 0;
@@ -259,12 +251,10 @@
             user-select: none;
         }
 
-        /* Show mobile touch area only when portfolio is active */
         #portfolio-content.active #mobile-touch-area {
             display: block;
         }
 
-        /* ✅ ENHANCED Mobile-specific scaling and full-screen display */
         @media (max-width: 768px) {
             #artwork-display {
                 padding: 0;
@@ -297,7 +287,6 @@
             }
         }
 
-        /* ✅ ENHANCED Mobile scaling for smaller screens */
         @media (max-width: 480px) {
             #artwork-media {
                 max-width: 100vw !important;
@@ -320,7 +309,6 @@
             }
         }
 
-        /* ✅ ENHANCED Mobile landscape orientation optimization */
         @media (max-width: 768px) and (orientation: landscape) {
             #artwork-media {
                 max-width: 100vw !important;
@@ -337,7 +325,6 @@
             }
         }
 
-        /* ✅ ENHANCED Mobile portrait orientation optimization */
         @media (max-width: 768px) and (orientation: portrait) {
             #artwork-media {
                 max-width: 100vw !important;
@@ -354,7 +341,6 @@
             }
         }
 
-        /* ✅ NEW: Enhanced Mobile scaling for transition video */
         @media (max-width: 768px) {
             #portfolio-loading-video {
                 width: 100vw !important;
@@ -367,7 +353,6 @@
             }
         }
 
-        /* ✅ NEW: Mobile landscape transition video optimization */
         @media (max-width: 768px) and (orientation: landscape) {
             #portfolio-loading-video {
                 width: 100vw !important;
@@ -377,7 +362,6 @@
             }
         }
 
-        /* ✅ NEW: Mobile portrait transition video optimization */
         @media (max-width: 768px) and (orientation: portrait) {
             #portfolio-loading-video {
                 width: 100vw !important;
@@ -390,13 +374,10 @@
 </head>
 <body>
 
-    <!-- Custom rotating cursor -->
     <div id="rotating-cursor"></div>
 
-    <!-- Unity loading indicator -->
     <div id="unity-loading">0%</div>
 
-    <!-- Portfolio transition loading -->
     <div id="portfolio-loading">
         <video id="portfolio-loading-video" muted autoplay loop playsinline playbackRate="0.66">
             <source src="assets/videos/transition.mp4" type="video/mp4">
@@ -404,15 +385,12 @@
         </video>
     </div>
 
-    <!-- Unity WebGL containers -->
     <div id="fade-overlay"></div>
     <div id="unity-container">
         <canvas id="unity-canvas" tabindex="-1"></canvas>
     </div>
 
-    <!-- Portfolio content -->
     <div id="portfolio-content">
-        <!-- ✅ NEW: Mobile touch area -->
         <div id="mobile-touch-area"></div>
         
         <div id="artwork-display">
@@ -420,34 +398,27 @@
         </div>
         <div id="custom-cursor"></div>
         
-        <!-- ✅ NEW: Bottom right GENSCO text -->
         <div id="bottom-right-text" style="display: none;">
             ezrasilva@proton.me
         </div>
     </div>
 
-    <!-- Unity loader -->
     <script src="Build/Table.loader.js"></script>
 
     <script>
         let unityInstance = null;
         let currentArtworkName = '';
 
-        // ✅ NEW: Unity-Website Touch Coordination
         window.unityTouchActive = false;
         window.SetUnityTouchMode = function(active) {
             window.unityTouchActive = active;
-            console.log("Unity touch mode:", active ? "ACTIVE" : "INACTIVE");
             
-            // Disable/enable website touch accordingly
             if (active) {
-                // Unity is handling touches - disable website touch
                 const mobileArea = document.getElementById('mobile-touch-area');
                 if (mobileArea) {
                     mobileArea.style.pointerEvents = 'none';
                 }
             } else {
-                // Unity finished - enable website touch
                 const mobileArea = document.getElementById('mobile-touch-area');
                 if (mobileArea) {
                     mobileArea.style.pointerEvents = 'auto';
@@ -455,59 +426,47 @@
             }
         };
 
-        // ✅ NEW: Mobile detection
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                          (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
                          window.innerWidth <= 768;
 
-        console.log("Device detected:", isMobile ? "Mobile" : "Desktop");
-
-        // Rotating cursor system
         const rotatingCursor = {
             element: null,
             
             init() {
                 this.element = document.getElementById('rotating-cursor');
                 
-                // Track mouse movement (desktop only)
                 if (!isMobile) {
                     document.addEventListener('mousemove', (e) => {
                         if (this.element) {
-                            this.element.style.left = (e.clientX - 16) + 'px'; // Center cursor (16px offset for 32px cursor)
+                            this.element.style.left = (e.clientX - 16) + 'px';
                             this.element.style.top = (e.clientY - 16) + 'px';
                         }
                     });
                 }
-                
-                console.log("Rotating cursor initialized (hidden)");
             },
             
             show() {
-                if (this.element && !isMobile) { // Only show on desktop
+                if (this.element && !isMobile) {
                     this.element.classList.add('show');
-                    console.log("Rotating cursor shown");
                 }
             },
             
             hide() {
                 if (this.element) {
                     this.element.classList.remove('show');
-                    console.log("Rotating cursor hidden");
                 }
             }
         };
 
-        // Initialize rotating cursor immediately
         document.addEventListener('DOMContentLoaded', () => {
             rotatingCursor.init();
         });
 
-        // Also initialize on window load as backup
         window.addEventListener('load', () => {
             rotatingCursor.init();
         });
 
-        // Audio System for Portfolio
         const audioSystem = {
             backgroundAudio: null,
             clickAudio: null,
@@ -515,19 +474,16 @@
             
             async init() {
                 try {
-                    // Initialize background audio
                     this.backgroundAudio = new Audio('assets/audio/background.mp3');
                     this.backgroundAudio.loop = true;
-                    this.backgroundAudio.volume = 0.3; // 30% volume
+                    this.backgroundAudio.volume = 0.3;
                     
-                    // Initialize click sound
                     this.clickAudio = new Audio('assets/audio/click.mp3');
-                    this.clickAudio.volume = 0.5; // 50% volume
+                    this.clickAudio.volume = 0.5;
                     
-                    console.log("Audio system initialized");
                     this.audioInitialized = true;
                 } catch (error) {
-                    console.warn("Audio initialization failed:", error);
+                    
                 }
             },
             
@@ -535,9 +491,8 @@
                 if (this.backgroundAudio && this.audioInitialized) {
                     try {
                         await this.backgroundAudio.play();
-                        console.log("Background music started");
                     } catch (error) {
-                        console.warn("Background music failed to start:", error);
+                        
                     }
                 }
             },
@@ -545,14 +500,13 @@
             playClickSound() {
                 if (this.clickAudio && this.audioInitialized) {
                     try {
-                        this.clickAudio.currentTime = 0; // Reset to start
+                        this.clickAudio.currentTime = 0;
                         const playPromise = this.clickAudio.play();
                         if (playPromise !== undefined) {
-                            playPromise.catch(e => console.warn("Click sound failed:", e));
+                            playPromise.catch(e => {});
                         }
-                        console.log("Click sound played");
                     } catch (error) {
-                        console.warn("Click sound error:", error);
+                        
                     }
                 }
             },
@@ -565,11 +519,10 @@
             }
         };
 
-        // Portfolio Loading System
         const portfolioLoader = {
             isLoading: false,
             startTime: null,
-            duration: 8000, // 8 seconds loading
+            duration: 8000,
             
             show() {
                 const loadingElement = document.getElementById('portfolio-loading');
@@ -578,23 +531,17 @@
                 loadingElement.style.display = 'flex';
                 loadingElement.classList.remove('fade-out');
                 
-                // ✅ FIX: Ensure video plays on mobile
                 if (videoElement) {
                     videoElement.playbackRate = 0.66;
-                    // Force play for mobile
                     const playPromise = videoElement.play();
                     if (playPromise !== undefined) {
-                        playPromise.catch(() => {
-                            console.warn("Video autoplay failed, continuing with timer");
-                        });
+                        playPromise.catch(() => {});
                     }
                 }
                 
                 this.isLoading = true;
                 this.startTime = Date.now();
                 this.updateProgress();
-                
-                console.log("Portfolio loading started");
             },
             
             updateProgress() {
@@ -613,13 +560,11 @@
             fadeOutAndComplete() {
                 const loadingElement = document.getElementById('portfolio-loading');
                 
-                // Start fade out
                 loadingElement.classList.add('fade-out');
                 
-                // Complete after fade out finishes
                 setTimeout(() => {
                     this.complete();
-                }, 1000); // Wait for 1s fade out transition
+                }, 1000);
             },
             
             complete() {
@@ -629,22 +574,17 @@
                 portfolioContent.style.display = 'block';
                 portfolioContent.classList.add('active');
                 
-                // Initialize portfolio systems
                 customCursor.init();
                 titleManager.init();
                 
-                // ✅ FIX: Ensure audio starts on mobile after user interaction
                 setTimeout(() => {
                     audioSystem.startBackgroundMusic();
                 }, 100);
                 
                 artworkManager.loadMediaFiles();
-                
-                console.log("Portfolio loading complete - portfolio active");
             }
         };
 
-        // Proper Unity Audio Initialization
         const unityAudioSystem = {
             context: null,
             initialized: false,
@@ -653,26 +593,21 @@
                 if (this.initialized) return;
                 
                 try {
-                    // Create Web Audio context for Unity
                     this.context = new (window.AudioContext || window.webkitAudioContext)();
                     
-                    // Resume context if suspended (required by browsers)
                     if (this.context.state === 'suspended') {
                         await this.context.resume();
                     }
                     
-                    // ✅ CRITICAL: Unity looks for Module.audioContext, not window.unityAudioContext
                     window.Module = window.Module || {};
                     window.Module.audioContext = this.context;
                     
                     this.initialized = true;
-                    console.log("Unity audio context initialized and assigned to Module.audioContext");
                 } catch (error) {
-                    console.error("Unity audio initialization failed:", error);
+                    
                 }
             },
             
-            // Ensure audio context is active for Unity
             ensureActive() {
                 if (this.context && this.context.state === 'suspended') {
                     this.context.resume();
@@ -680,103 +615,99 @@
             }
         };
 
-        // Initialize audio on first user interaction
         function initializeAllAudio() {
             unityAudioSystem.initialize();
             audioSystem.init();
         }
 
-        // Add event listeners for audio initialization
         document.addEventListener('click', initializeAllAudio, { once: true });
         document.addEventListener('keydown', initializeAllAudio, { once: true });
         document.addEventListener('touchstart', initializeAllAudio, { once: true });
 
-        // Title Management System - Direct correspondence to artwork
         const titleManager = {
             artworkTitles: [
-                "FIGURE PATERNELLE",           // artwork01
-                "APNEE",          // artwork02
-                "PINA",           // artwork03
-                "TO CATCH AN EEL",          // artwork04
-                "DISCIPLINE",           // artwork05
-                "SOFTSKIN",           // artwork06
-                "BOY",         // artwork07
-                "HAPPY ENDING",          // artwork08
-                "ON MONDAYS",           // artwork09
-                "A GATHERING",           // artwork10
-                "AUGUST",        // artwork11
-                "CUT II",         // artwork12
-                "SPOON",      // artwork13
-                "FLEUVE",      // artwork14
-                "ARC EN CIEL",       // artwork15
-                "PRAYER BEADS",       // artwork16
-                "CLOUDS",     // artwork17
-                "CUT I",      // artwork18
-                "MAREE",      // artwork19
-                "CHEMIN",       // artwork20
-                "SOIREE",    // artwork21
-                "PLANET FILTH",   // artwork22
-                "BUDAPEST PAGE",    // artwork23
-                "FLOWER STUDIES",   // artwork24
-                "VAGUE",    // artwork25
-                "ENFANCE",    // artwork26
-                "CUT III",  // artwork27
-                "ABLATION",   // artwork28
-                "ANYTHING",    // artwork29
-                "BURIAL OF ACHILLES",       // artwork30
-                "RINGER",    // artwork31
-                "LECTEUR",   // artwork32
-                "GESHA",    // artwork33
-                "SEED",   // artwork34
-                "FAIRY",    // artwork35
-                "LUMIERE ABOMINABLE",    // artwork36
-                "WEIGHTS",  // artwork37
-                "DIFFFRACTION",   // artwork38
-                "HAPPY THOUGHTS",    // artwork39
-                "ARBRE",        // artwork40
-                "ANGEL",     // artwork41
-                "COMPI",    // artwork42
-                "FLUIDGUN",     // artwork43
-                "MACBETH",    // artwork44
-                "OMELETTE",     // artwork45
-                "PERSONNAGE",     // artwork46
-                "LABYRYNTH",   // artwork47
-                "A TROU FOR A MOON",    // artwork48
-                "AFFICHE",     // artwork49
-                "APPENDIX",        // artwork50
-                "HEAD",     // artwork51
-                "DEEP OCEAN VAST SEA",     // artwork52
-                "CASCADE",     // artwork53
-                "DRAG",     // artwork54
-                "AS ANY OTHER DOOR",     // artwork55
-                "TOURNESOL",     // artwork56
-                "WALTZ",     // artwork57
-                "PICNIC",     // artwork58
-                "INTRODUCTION",     // artwork59
-                "VERSE",     // artwork60
-                "SUN THROUGH THE BLINDS",     // artwork61
-                "4 AM",     // artwork62
-                "FUMEE",     // artwork63
-                "MONOLOGUE",     // artwork64
-                "ROOM",     // artwork65
-                "COMA WITH HIS THOUGHTS",     // artwork66
-                "ESCARGOT",     // artwork67
-                "CHRYSALIDE",     // artwork68
-                "NIGHT OF THE HUNTER",     // artwork69
-                "TRIPTYCH I",     // artwork70
-                "TRIPTYCH II",     // artwork71
-                "VOYEUR",     // artwork72
-                "VAMPYR",     // artwork73
-                "MECHE",     // artwork74
-                "SLEEPLESS",     // artwork75
-                "EARRING",     // artwork76
-                "MIDORI",     // artwork77
-                "CUT IV",     // artwork78
-            
+                "FIGURE PATERNELLE",
+                "APNEE",
+                "PINA",
+                "TO CATCH AN EEL",
+                "DISCIPLINE",
+                "SOFTSKIN",
+                "BOY",
+                "HAPPY ENDING",
+                "ON MONDAYS",
+                "A GATHERING",
+                "AUGUST",
+                "CUT II",
+                "SPOON",
+                "FLEUVE",
+                "ARC EN CIEL",
+                "PRAYER BEADS",
+                "CLOUDS",
+                "CUT I",
+                "MAREE",
+                "CHEMIN",
+                "SOIREE",
+                "PLANET FILTH",
+                "BUDAPEST PAGE",
+                "FLOWER STUDIES",
+                "VAGUE",
+                "ENFANCE",
+                "CUT III",
+                "ABLATION",
+                "ANYTHING",
+                "BURIAL OF ACHILLES",
+                "RINGER",
+                "LECTEUR",
+                "GESHA",
+                "SEED",
+                "FAIRY",
+                "LUMIERE ABOMINABLE",
+                "WEIGHTS",
+                "DIFFFRACTION",
+                "HAPPY THOUGHTS",
+                "ARBRE",
+                "ANGEL",
+                "COMPI",
+                "FLUIDGUN",
+                "MACBETH",
+                "OMELETTE",
+                "PERSONNAGE",
+                "LABYRYNTH",
+                "A TROU FOR A MOON",
+                "AFFICHE",
+                "APPENDIX",
+                "HEAD",
+                "DEEP OCEAN VAST SEA",
+                "CASCADE",
+                "DRAG",
+                "AS ANY OTHER DOOR",
+                "TOURNESOL",
+                "WALTZ",
+                "PICNIC",
+                "INTRODUCTION",
+                "VERSE",
+                "SUN THROUGH THE BLINDS",
+                "4 AM",
+                "FUMEE",
+                "MONOLOGUE",
+                "ROOM",
+                "COMA WITH HIS THOUGHTS",
+                "ESCARGOT",
+                "CHRYSALIDE",
+                "NIGHT OF THE HUNTER",
+                "TRIPTYCH I",
+                "TRIPTYCH II",
+                "VOYEUR",
+                "VAMPYR",
+                "MECHE",
+                "SLEEPLESS",
+                "EARRING",
+                "MIDORI",
+                "CUT IV"
             ],
             
             init() {
-                console.log(`Title system initialized with ${this.artworkTitles.length} titles`);
+                
             },
             
             getTitleForArtwork(artworkIndex) {
@@ -790,7 +721,6 @@
             }
         };
 
-        // Title management - Bottom center positioning
         const customCursor = {
             element: null,
             
@@ -816,7 +746,6 @@
             }
         };
 
-        // ✅ NEW: Mobile Touch System
         const mobileTouch = {
             touchArea: null,
             
@@ -824,7 +753,6 @@
                 this.touchArea = document.getElementById('mobile-touch-area');
                 if (this.touchArea && isMobile) {
                     this.setupTouchEvents();
-                    console.log("Mobile touch system initialized");
                 }
             },
             
@@ -833,35 +761,27 @@
                 let touchStartPos = { x: 0, y: 0 };
                 
                 this.touchArea.addEventListener('touchstart', (e) => {
-                    // Check if Unity is handling touches
                     if (window.unityTouchActive) {
-                        console.log("Touch ignored - Unity is active");
                         return;
                     }
                     
                     e.preventDefault();
                     touchStartTime = Date.now();
                     
-                    // Record touch start position
                     if (e.touches.length > 0) {
                         touchStartPos.x = e.touches[0].clientX;
                         touchStartPos.y = e.touches[0].clientY;
                     }
-                    
-                    console.log("Touch started");
                 }, { passive: false });
                 
                 this.touchArea.addEventListener('touchend', (e) => {
-                    // Check if Unity is handling touches
                     if (window.unityTouchActive) {
-                        console.log("Touch end ignored - Unity is active");
                         return;
                     }
                     
                     e.preventDefault();
                     const touchDuration = Date.now() - touchStartTime;
                     
-                    // Calculate movement distance if touch end position is available
                     let moveDistance = 0;
                     if (e.changedTouches.length > 0) {
                         const endX = e.changedTouches[0].clientX;
@@ -872,21 +792,15 @@
                         );
                     }
                     
-                    // ✅ ENHANCED: Both tap and swipe gestures trigger artwork change (under 1000ms)
                     if (touchDuration < 1000) {
-                        console.log("Touch gesture detected (tap or swipe) - triggering artwork change");
-                        
-                        // ✅ IMPROVED: Play click sound immediately for better responsiveness
                         audioSystem.playClickSound();
                         
-                        // Trigger artwork change with minimal delay
                         setTimeout(() => {
                             artworkManager.showNextArtwork();
                         }, 20);
                     }
                 }, { passive: false });
                 
-                // Prevent context menu and other touch behaviors
                 this.touchArea.addEventListener('contextmenu', (e) => {
                     if (window.unityTouchActive) return;
                     e.preventDefault();
@@ -899,16 +813,13 @@
             }
         };
 
-        // Chronological Display System
         const artworkManager = {
             mediaFiles: [],
             currentIndex: 0,
             isLoading: false,
-            viewedArtworks: new Set(), // Track viewed artworks
+            viewedArtworks: new Set(),
             
             async loadMediaFiles() {
-                console.log("Loading artwork files...");
-                
                 const extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'];
                 
                 for (let i = 1; i <= 100; i++) {
@@ -926,7 +837,6 @@
                                     index: i,
                                     id: this.mediaFiles.length
                                 });
-                                console.log(`Found: ${urlWithZero}`);
                                 continue;
                             }
                             
@@ -941,20 +851,15 @@
                                     index: i,
                                     id: this.mediaFiles.length
                                 });
-                                console.log(`Found: ${urlWithoutZero}`);
                             }
                         } catch (error) {
-                            // File doesn't exist, continue
+                            
                         }
                     }
                 }
                 
-                console.log(`✅ TOTAL LOADED: ${this.mediaFiles.length} artwork files`);
-                
                 if (this.mediaFiles.length > 0) {
                     this.showNextArtwork();
-                } else {
-                    console.warn("❌ No artwork files found. Make sure files are in assets/artwork/ folder");
                 }
             },
             
@@ -1012,10 +917,8 @@
                         newMedia.style.opacity = '1';
                         this.isLoading = false;
                         
-                        // Track viewed artwork
                         this.viewedArtworks.add(mediaFile.index);
                         
-                        // Show contact info if all artworks viewed
                         if (this.viewedArtworks.size === this.mediaFiles.length) {
                             document.getElementById('bottom-right-text').style.display = 'block';
                         }
@@ -1023,14 +926,9 @@
                         const artworkNumber = mediaFile.index;
                         const properTitle = titleManager.getTitleForArtwork(artworkNumber);
                         customCursor.update(properTitle);
-                        
-                        // ✅ REMOVED: Click sound now plays immediately on touch for better mobile responsiveness
-                        
-                        console.log(`✅ Showing: ${mediaFile.name} | Title: "${properTitle}"`);
                     };
                     
                     newMedia.onerror = () => {
-                        console.error(`❌ Failed to load: ${mediaFile.name}`);
                         this.isLoading = false;
                         setTimeout(() => this.showNextArtwork(), 500);
                     };
@@ -1049,44 +947,20 @@
         };
 
         function UnlockWebsitePortfolio() {
-            // ✅ NEW: Disable Unity touch mode
             window.SetUnityTouchMode(false);
             
-            // ✅ FIX: Initialize audio for mobile (user gesture already occurred in Unity)
             if (!audioSystem.audioInitialized) {
                 audioSystem.init();
             }
             
-            // Hide Unity elements
             document.getElementById('unity-loading').style.display = 'none';
             document.getElementById('fade-overlay').style.display = 'none';
             document.getElementById('unity-container').style.display = 'none';
             
-            // Keep cursor hidden during transition
             rotatingCursor.hide();
             
-            // Start portfolio loading transition
             portfolioLoader.show();
-            
-            console.log("Unity game completed - starting portfolio transition");
         }
-
-        /*
-        ✅ UNITY INTEGRATION INSTRUCTIONS:
-        
-        In your Unity SimpleTouchController script, add these calls:
-        
-        1. When Unity game starts handling input:
-           Application.ExternalEval("window.SetUnityTouchMode(true);");
-        
-        2. When Unity finishes (before calling UnlockWebsitePortfolio):
-           Application.ExternalEval("window.SetUnityTouchMode(false);");
-        
-        3. When transitioning to portfolio:
-           Application.ExternalEval("window.UnlockWebsitePortfolio();");
-        
-        This ensures proper touch coordination between Unity and the website.
-        */
 
         window.UnlockWebsitePortfolio = UnlockWebsitePortfolio;
 
@@ -1107,17 +981,13 @@
                     const loadingElement = document.getElementById('unity-loading');
                     const percentage = Math.round(progress * 100);
                     loadingElement.textContent = `${percentage}%`;
-                    console.log(`Unity Loading: ${percentage}%`);
                 }).then((instance) => {
                     unityInstance = instance;
                     
-                    // ✅ NEW: Enable Unity touch mode when game is ready
                     window.SetUnityTouchMode(true);
                     
-                    // Ensure Unity audio is properly initialized
                     unityAudioSystem.ensureActive();
                     
-                    // Hide loading when Unity is ready
                     document.getElementById('unity-loading').style.display = 'none';
                     
                     function resizeUnityCanvas() {
@@ -1128,28 +998,20 @@
                     resizeUnityCanvas();
                     window.addEventListener('resize', resizeUnityCanvas);
                 }).catch((message) => {
-                    console.error("Unity Error:", message);
-                    // ✅ NEW: Ensure Unity touch mode is disabled on error
                     window.SetUnityTouchMode(false);
                     UnlockWebsitePortfolio();
                 });
             } else {
-                console.error("Unity loader not found.");
-                // ✅ NEW: Ensure Unity touch mode is disabled if loader missing
                 window.SetUnityTouchMode(false);
                 UnlockWebsitePortfolio();
             }
         });
 
-        // Setup portfolio event listeners after loading completes
         function setupPortfolioEvents() {
-            // Desktop click events (only if not mobile)
             if (!isMobile) {
                 document.getElementById('portfolio-content').addEventListener('click', (e) => {
                     e.preventDefault();
-                    console.log("Desktop click detected - flipping to next artwork");
                     
-                    // ✅ ADDED: Play click sound for desktop clicks
                     audioSystem.playClickSound();
                     
                     artworkManager.showNextArtwork();
@@ -1171,33 +1033,26 @@
                 });
             }
             
-            // ✅ NEW: Initialize mobile touch events
             mobileTouch.init();
         }
 
-        // Call setup when portfolio loading completes
         portfolioLoader.complete = function() {
             this.isLoading = false;
             document.getElementById('portfolio-loading').style.display = 'none';
             const portfolioContent = document.getElementById('portfolio-content');
             portfolioContent.style.display = 'block';
-            portfolioContent.classList.add('active'); // ✅ NEW: Add active class
+            portfolioContent.classList.add('active');
             
-            // Initialize portfolio systems
             customCursor.init();
             titleManager.init();
             audioSystem.startBackgroundMusic();
             artworkManager.loadMediaFiles();
             
-            // Show rotating cursor when portfolio is active (desktop only)
             if (!isMobile) {
                 rotatingCursor.show();
             }
             
-            // Setup event listeners
             setupPortfolioEvents();
-            
-            console.log("Portfolio loading complete - portfolio active");
         };
 
         let cursorTimeout;
@@ -1212,14 +1067,12 @@
             }
         }
 
-        // ✅ Modified: Only add mouse events for desktop
         if (!isMobile) {
             ['mousemove', 'mousedown', 'keydown'].forEach(evt =>
                 document.addEventListener(evt, resetCursorTimer)
             );
         }
 
-        // Touch events for mobile cursor timer
         if (isMobile) {
             ['touchstart', 'touchmove'].forEach(evt =>
                 document.addEventListener(evt, resetCursorTimer)
