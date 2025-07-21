@@ -465,9 +465,16 @@
                 loadingElement.style.display = 'flex';
                 loadingElement.classList.remove('fade-out');
                 
-                // Set video playback speed to 0.66x
+                // ✅ FIX: Ensure video plays on mobile
                 if (videoElement) {
                     videoElement.playbackRate = 0.66;
+                    // Force play for mobile
+                    const playPromise = videoElement.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(() => {
+                            console.warn("Video autoplay failed, continuing with timer");
+                        });
+                    }
                 }
                 
                 this.isLoading = true;
@@ -507,12 +514,17 @@
                 document.getElementById('portfolio-loading').style.display = 'none';
                 const portfolioContent = document.getElementById('portfolio-content');
                 portfolioContent.style.display = 'block';
-                portfolioContent.classList.add('active'); // ✅ NEW: Add active class
+                portfolioContent.classList.add('active');
                 
                 // Initialize portfolio systems
                 customCursor.init();
                 titleManager.init();
-                audioSystem.startBackgroundMusic();
+                
+                // ✅ FIX: Ensure audio starts on mobile after user interaction
+                setTimeout(() => {
+                    audioSystem.startBackgroundMusic();
+                }, 100);
+                
                 artworkManager.loadMediaFiles();
                 
                 console.log("Portfolio loading complete - portfolio active");
@@ -582,7 +594,7 @@
                 "LOU II",         // artwork12
                 "SPOON",      // artwork13
                 "FLEUVE",      // artwork14
-                "FELIX",       // artwork15
+                "ARC EN CIEL",       // artwork15
                 "PRAYER BEADS",       // artwork16
                 "CLOUDS",     // artwork17
                 "LOU I",      // artwork18
@@ -631,7 +643,7 @@
                 "ARCHIPELAGO",     // artwork61
                 "5AM",     // artwork62
                 "FUMEE",     // artwork63
-                "MONOLOGUE",     // artwork64
+                "OISEAU",     // artwork64
                 "MAUVAISES HABITUDES V",     // artwork65
                 "COMA WITH HIS THOUGHTS",     // artwork66
                 "ESCARGOT",     // artwork67
@@ -644,7 +656,7 @@
                 "MECHE",     // artwork74
                 "THE SUN THROUGH THE BLINDS",     // artwork75
                 "EARRING",     // artwork76
-                "SANSTITRE",     // artwork77
+                "MONOLOGUE",     // artwork77
                 "WALTZ",     // artwork78
                 "5/4",     // artwork79
                 
@@ -901,6 +913,11 @@
         function UnlockWebsitePortfolio() {
             // ✅ NEW: Disable Unity touch mode
             window.SetUnityTouchMode(false);
+            
+            // ✅ FIX: Initialize audio for mobile (user gesture already occurred in Unity)
+            if (!audioSystem.audioInitialized) {
+                audioSystem.init();
+            }
             
             // Hide Unity elements
             document.getElementById('unity-loading').style.display = 'none';
