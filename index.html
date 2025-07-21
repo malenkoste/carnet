@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Ezra</title>
+    <title>Book of Ezra</title>
     <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
     <style>
@@ -13,7 +13,7 @@
             src: url('assets/fonts/RAMI.woff2') format('woff2');
             font-weight: normal;
             font-style: normal;
-            font-display: swap;
+            font-display: block;
         }
 
         /* ✅ GENSCO font for bottom right text */
@@ -250,7 +250,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 15;
+            z-index: 25;
             background: transparent;
             display: none;
             touch-action: manipulation;
@@ -264,21 +264,126 @@
             display: block;
         }
 
-        /* ✅ Mobile-specific styles */
+        /* ✅ ENHANCED Mobile-specific scaling and full-screen display */
         @media (max-width: 768px) {
+            #artwork-display {
+                padding: 0;
+                margin: 0;
+            }
+            
             #artwork-media {
-                max-width: 90vw;
-                max-height: 80vh;
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+                object-position: center;
+                position: absolute;
+                top: 0;
+                left: 0;
             }
             
             #custom-cursor {
                 font-size: 14px;
+                bottom: 30px;
+                z-index: 9999;
             }
             
             #bottom-right-text {
                 font-size: 12px;
                 bottom: 15px;
                 right: 15px;
+                z-index: 9999;
+            }
+        }
+
+        /* ✅ ENHANCED Mobile scaling for smaller screens */
+        @media (max-width: 480px) {
+            #artwork-media {
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+                object-position: center;
+            }
+            
+            #custom-cursor {
+                font-size: 12px;
+                bottom: 25px;
+            }
+            
+            #bottom-right-text {
+                font-size: 10px;
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+
+        /* ✅ ENHANCED Mobile landscape orientation optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            #artwork-media {
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+                object-position: center;
+            }
+            
+            #custom-cursor {
+                bottom: 15px;
+                font-size: 13px;
+            }
+        }
+
+        /* ✅ ENHANCED Mobile portrait orientation optimization */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #artwork-media {
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+                object-position: center;
+            }
+            
+            #custom-cursor {
+                bottom: 40px;
+                font-size: 14px;
+            }
+        }
+
+        /* ✅ NEW: Enhanced Mobile scaling for transition video */
+        @media (max-width: 768px) {
+            #portfolio-loading-video {
+                width: 100vw !important;
+                height: 100vh !important;
+                object-fit: cover;
+                object-position: center;
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+        }
+
+        /* ✅ NEW: Mobile landscape transition video optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            #portfolio-loading-video {
+                width: 100vw !important;
+                height: 100vh !important;
+                object-fit: cover;
+                object-position: center;
+            }
+        }
+
+        /* ✅ NEW: Mobile portrait transition video optimization */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #portfolio-loading-video {
+                width: 100vw !important;
+                height: 100vh !important;
+                object-fit: cover;
+                object-position: center;
             }
         }
     </style>
@@ -293,7 +398,7 @@
 
     <!-- Portfolio transition loading -->
     <div id="portfolio-loading">
-        <video id="portfolio-loading-video" muted autoplay loop playbackRate="0.66">
+        <video id="portfolio-loading-video" muted autoplay loop playsinline playbackRate="0.66">
             <source src="assets/videos/transition.mp4" type="video/mp4">
             <source src="assets/videos/transition.webm" type="video/webm">
         </video>
@@ -439,8 +544,16 @@
             
             playClickSound() {
                 if (this.clickAudio && this.audioInitialized) {
-                    this.clickAudio.currentTime = 0; // Reset to start
-                    this.clickAudio.play().catch(e => console.warn("Click sound failed:", e));
+                    try {
+                        this.clickAudio.currentTime = 0; // Reset to start
+                        const playPromise = this.clickAudio.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(e => console.warn("Click sound failed:", e));
+                        }
+                        console.log("Click sound played");
+                    } catch (error) {
+                        console.warn("Click sound error:", error);
+                    }
                 }
             },
             
@@ -548,11 +661,12 @@
                         await this.context.resume();
                     }
                     
-                    // Set global Unity audio context
-                    window.unityAudioContext = this.context;
+                    // ✅ CRITICAL: Unity looks for Module.audioContext, not window.unityAudioContext
+                    window.Module = window.Module || {};
+                    window.Module.audioContext = this.context;
                     
                     this.initialized = true;
-                    console.log("Unity audio context initialized successfully");
+                    console.log("Unity audio context initialized and assigned to Module.audioContext");
                 } catch (error) {
                     console.error("Unity audio initialization failed:", error);
                 }
@@ -582,7 +696,7 @@
             artworkTitles: [
                 "FIGURE PATERNELLE",           // artwork01
                 "AP",          // artwork02
-                "MACBETH",           // artwork03
+                "PINA",           // artwork03
                 "MAUVAISES HABITUDES II",          // artwork04
                 "DISCIPLINE",           // artwork05
                 "MAUVAISES HABITUDES I",           // artwork06
@@ -608,22 +722,22 @@
                 "ENFANCE",    // artwork26
                 "LOU III",  // artwork27
                 "ABLATION",   // artwork28
-                "WALTER",    // artwork29
-                "ACHILLES",       // artwork30
-                "RING",    // artwork31
+                "ANYTHING",    // artwork29
+                "BURIAL OF ACHILLES",       // artwork30
+                "RINGER",    // artwork31
                 "LECTEUR",   // artwork32
                 "GESHA",    // artwork33
                 "SEED",   // artwork34
                 "FAIRY",    // artwork35
                 "LUMIERE ABOMINABLE",    // artwork36
                 "WEIGHTS",  // artwork37
-                "DIFRACTION",   // artwork38
+                "DIFFFRACTION",   // artwork38
                 "HAPPY THOUGHTS",    // artwork39
                 "ARBRE",        // artwork40
                 "ANGEL",     // artwork41
-                "ANGEL",    // artwork42
+                "COMPA",    // artwork42
                 "RAT",     // artwork43
-                "PURGATORIUM",    // artwork44
+                "MACBETH",    // artwork44
                 "OMELETTE",     // artwork45
                 "SPOTLIGHT",     // artwork46
                 "LABYRYNTH",   // artwork47
@@ -641,9 +755,9 @@
                 "INTRODUCTION",     // artwork59
                 "VER",     // artwork60
                 "ARCHIPELAGO",     // artwork61
-                "5AM",     // artwork62
+                "4 AM",     // artwork62
                 "FUMEE",     // artwork63
-                "OISEAU",     // artwork64
+                "MONOLOGUE",     // artwork64
                 "MAUVAISES HABITUDES V",     // artwork65
                 "COMA WITH HIS THOUGHTS",     // artwork66
                 "ESCARGOT",     // artwork67
@@ -651,12 +765,12 @@
                 "NIGHT OF THE HUNTER",     // artwork69
                 "TRIPTYCH I",     // artwork70
                 "TRIPTYCH II",     // artwork71
-                "VOYEURISM",     // artwork72
+                "VOYEUR",     // artwork72
                 "VAMPYR",     // artwork73
                 "MECHE",     // artwork74
                 "THE SUN THROUGH THE BLINDS",     // artwork75
                 "EARRING",     // artwork76
-                "MONOLOGUE",     // artwork77
+                "SANSTITRE",     // artwork77
                 "WALTZ",     // artwork78
                 "5/4",     // artwork79
                 
@@ -717,6 +831,7 @@
             
             setupTouchEvents() {
                 let touchStartTime = 0;
+                let touchStartPos = { x: 0, y: 0 };
                 
                 this.touchArea.addEventListener('touchstart', (e) => {
                     // Check if Unity is handling touches
@@ -727,6 +842,13 @@
                     
                     e.preventDefault();
                     touchStartTime = Date.now();
+                    
+                    // Record touch start position
+                    if (e.touches.length > 0) {
+                        touchStartPos.x = e.touches[0].clientX;
+                        touchStartPos.y = e.touches[0].clientY;
+                    }
+                    
                     console.log("Touch started");
                 }, { passive: false });
                 
@@ -740,10 +862,28 @@
                     e.preventDefault();
                     const touchDuration = Date.now() - touchStartTime;
                     
-                    // Only register as tap if touch duration is short (< 500ms)
-                    if (touchDuration < 500) {
-                        console.log("Touch tap detected - triggering artwork change");
-                        artworkManager.showNextArtwork();
+                    // Calculate movement distance if touch end position is available
+                    let moveDistance = 0;
+                    if (e.changedTouches.length > 0) {
+                        const endX = e.changedTouches[0].clientX;
+                        const endY = e.changedTouches[0].clientY;
+                        moveDistance = Math.sqrt(
+                            Math.pow(endX - touchStartPos.x, 2) + 
+                            Math.pow(endY - touchStartPos.y, 2)
+                        );
+                    }
+                    
+                    // ✅ ENHANCED: Both tap and swipe gestures trigger artwork change (under 1000ms)
+                    if (touchDuration < 1000) {
+                        console.log("Touch gesture detected (tap or swipe) - triggering artwork change");
+                        
+                        // ✅ IMPROVED: Play click sound immediately for better responsiveness
+                        audioSystem.playClickSound();
+                        
+                        // Trigger artwork change with minimal delay
+                        setTimeout(() => {
+                            artworkManager.showNextArtwork();
+                        }, 20);
                     }
                 }, { passive: false });
                 
@@ -885,8 +1025,7 @@
                         const properTitle = titleManager.getTitleForArtwork(artworkNumber);
                         customCursor.update(properTitle);
                         
-                        // Play click sound when artwork changes
-                        audioSystem.playClickSound();
+                        // ✅ REMOVED: Click sound now plays immediately on touch for better mobile responsiveness
                         
                         console.log(`✅ Showing: ${mediaFile.name} | Title: "${properTitle}"`);
                     };
@@ -1010,6 +1149,10 @@
                 document.getElementById('portfolio-content').addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Desktop click detected - flipping to next artwork");
+                    
+                    // ✅ ADDED: Play click sound for desktop clicks
+                    audioSystem.playClickSound();
+                    
                     artworkManager.showNextArtwork();
                 });
                 
