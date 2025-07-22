@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Book of Ezra</title>
+    <title>Livre d'Ezra</title>
     <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
     <style>
@@ -131,12 +131,69 @@
             max-width: 60vw;
             max-height: 70vh;
             object-fit: contain;
-            transition: opacity 0.3s ease;
-            will-change: opacity;
+            transition: opacity 0.3s ease; /* Keep initial fade-out */
+            will-change: opacity, transform, clip-path;
         }
 
-        #artwork-media.fade-out {
-            opacity: 0;
+        /* Wavy transition animations */
+        @keyframes wavy-out {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+            }
+            25% {
+                transform: translateY(-10%) scale(1.05);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 0% 80%);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translateY(10%) scale(0.95);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 30%, 0% 20%);
+            }
+            75% {
+                transform: translateY(-5%) scale(1.02);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 10%, 0% 0%);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(0) scale(0.8);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%);
+            }
+        }
+
+        @keyframes wavy-in {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.8);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%);
+            }
+            25% {
+                transform: translateY(5%) scale(1.02);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 10%, 0% 20%);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translateY(-10%) scale(0.95);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 0% 80%);
+            }
+            75% {
+                transform: translateY(10%) scale(1.05);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 90%, 0% 100%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+            }
+        }
+
+        #artwork-media.wavy-out {
+            animation: wavy-out 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Groovy ease-out */
+        }
+
+        #artwork-media.wavy-in {
+            animation: wavy-in 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Groovy ease-in */
         }
 
         #unity-loading {
@@ -199,22 +256,28 @@
                 transform: translateX(-50%) scale(0.44);
                 color: #ffff00;
             }
-            16.66% {
-                color: #ccff00;
+            14.28% {
+                color: #ccff00; /* Original color */
             }
-            33.33% {
+            28.56% {
+                color: #99ff00; /* Original color */
+            }
+            42.84% {
                 opacity: 1;
                 transform: translateX(-50%) scale(1.13);
-                color: #99ff00;
+                color: #66ff33; /* Original color */
             }
-            50% {
-                color: #66ff33;
+            57.12% {
+                color: #33ff99; /* Original color */
             }
-            66.66% {
-                color: #33ff99;
+            71.4% {
+                color: #00ccff; /* Original color */
             }
-            83.33% {
-                color: #00ccff;
+            85.68% {
+                color: #FF0000; /* Red hue */
+            }
+            92.84% {
+                color: #000000; /* Black hue */
             }
         }
 
@@ -255,6 +318,37 @@
             display: block;
         }
 
+        #tap-click-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10002;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            pointer-events: none;
+            color: white;
+        }
+
+        #tap-click-container.show {
+            opacity: 1;
+        }
+
+        #tap-click-main-text {
+            font-family: 'RAMI' !important;
+            font-size: 2em;
+            white-space: nowrap;
+            display: block;
+        }
+
+        #tap-click-mobile-text {
+            font-family: 'GENSCO' !important;
+            font-size: 1em; /* Adjust size relative to main text */
+            margin-top: 5px; /* Spacing between the two lines */
+            display: block;
+        }
+
         @media (max-width: 768px) {
             #artwork-display {
                 padding: 0;
@@ -285,6 +379,13 @@
                 right: 15px;
                 z-index: 9999;
             }
+
+            #tap-click-main-text {
+                font-size: 1.5em;
+            }
+            #tap-click-mobile-text {
+                font-size: 0.8em; /* Smaller on mobile */
+            }
         }
 
         @media (max-width: 480px) {
@@ -306,6 +407,13 @@
                 font-size: 10px;
                 bottom: 10px;
                 right: 10px;
+            }
+
+            #tap-click-main-text {
+                font-size: 1.2em;
+            }
+            #tap-click-mobile-text {
+                font-size: 0.7em; /* Even smaller on mobile */
             }
         }
 
@@ -394,12 +502,18 @@
         <div id="mobile-touch-area"></div>
         
         <div id="artwork-display">
-            <img id="artwork-media" src="" alt="Artwork" style="opacity: 0;">
+            <img id="artwork-media" src="" style="opacity: 0;">
         </div>
         <div id="custom-cursor"></div>
         
         <div id="bottom-right-text" style="display: none;">
+            Ezra Silva.
+            Paris, France. 
             ezrasilva@proton.me
+        </div>
+        <div id="tap-click-container">
+            <div id="tap-click-main-text">TAP / CLICK</div>
+            <div id="tap-click-mobile-text">FLIP BACK TO VERTICAL MODE ON MOBILE DEVICES</div>
         </div>
     </div>
 
@@ -483,7 +597,8 @@
                     
                     this.audioInitialized = true;
                 } catch (error) {
-                    
+                    // Audio playback may be prevented by the browser if not initiated by a user gesture.
+                    // This error is caught silently as per original code behavior.
                 }
             },
             
@@ -492,7 +607,7 @@
                     try {
                         await this.backgroundAudio.play();
                     } catch (error) {
-                        
+                        // Autoplay prevented. Will be handled by user interaction.
                     }
                 }
             },
@@ -503,10 +618,10 @@
                         this.clickAudio.currentTime = 0;
                         const playPromise = this.clickAudio.play();
                         if (playPromise !== undefined) {
-                            playPromise.catch(e => {});
+                            playPromise.catch(e => { /* Autoplay prevented */ });
                         }
                     } catch (error) {
-                        
+                        // Error playing sound, typically due to user gesture requirement.
                     }
                 }
             },
@@ -582,6 +697,18 @@
                 }, 100);
                 
                 artworkManager.loadMediaFiles();
+
+                // Show TAP // CLICK text 6 seconds after portfolio initialization
+                setTimeout(() => {
+                    const tapClickContainer = document.getElementById('tap-click-container');
+                    if (tapClickContainer) {
+                        tapClickContainer.classList.add('show');
+                        // Optionally hide it after some time if desired, e.g., 3 seconds
+                        setTimeout(() => {
+                            tapClickContainer.classList.remove('show');
+                        }, 3000); 
+                    }
+                }, 6000); // 6 seconds after portfolioLoader.complete runs
             }
         };
 
@@ -604,7 +731,7 @@
                     
                     this.initialized = true;
                 } catch (error) {
-                    
+                    // Error initializing Unity audio context
                 }
             },
             
@@ -628,82 +755,60 @@
             artworkTitles: [
                 "FIGURE PATERNELLE",
                 "APNEE",
+                "FLEUR",
+                "MACBETH",
                 "PINA",
-                "TO CATCH AN EEL",
-                "DISCIPLINE",
-                "SOFTSKIN",
-                "BOY",
+                "SOFT-SKIN",
+                "CHRYSALIDE",
                 "HAPPY ENDING",
-                "ON MONDAYS",
-                "A GATHERING",
+                "FLOWER STUDY",
+                "ANGEL",
                 "AUGUST",
-                "CUT II",
-                "SPOON",
-                "FLEUVE",
-                "ARC EN CIEL",
-                "PRAYER BEADS",
-                "CLOUDS",
                 "CUT I",
-                "MAREE",
-                "CHEMIN",
-                "SOIREE",
-                "PLANET FILTH",
-                "BUDAPEST PAGE",
-                "FLOWER STUDIES",
-                "VAGUE",
-                "ENFANCE",
+                "BUDAPEST PAGES I",
+                "BUDAPEST PAGES II",
+                "BUDAPEST PAGES III",
+                "BUDAPEST PAGES IV",
+                "PRAYER BEADS",
+                "CUT II",
+                "LIFE ON MARS",
+                "FAIRY",
+                "UNTITLED",
+                "SUR LE SOLEIL",
+                "AS ANY OTHER DOOR",
+                "PORTRAIT (DIFFRACTION)",
+                "ANYTHING",
+                "CAMELIA GIRL",
                 "CUT III",
                 "ABLATION",
-                "ANYTHING",
+                "INTRODUCTION",
                 "BURIAL OF ACHILLES",
                 "RINGER",
-                "LECTEUR",
-                "GESHA",
-                "SEED",
-                "FAIRY",
-                "LUMIERE ABOMINABLE",
-                "WEIGHTS",
-                "DIFFFRACTION",
-                "HAPPY THOUGHTS",
-                "ARBRE",
-                "ANGEL",
-                "COMPI",
-                "FLUIDGUN",
-                "MACBETH",
-                "OMELETTE",
-                "PERSONNAGE",
-                "LABYRYNTH",
-                "A TROU FOR A MOON",
-                "AFFICHE",
-                "APPENDIX",
-                "HEAD",
-                "DEEP OCEAN VAST SEA",
-                "CASCADE",
-                "DRAG",
-                "AS ANY OTHER DOOR",
-                "TOURNESOL",
-                "WALTZ",
-                "PICNIC",
-                "INTRODUCTION",
-                "VERSE",
-                "SUN THROUGH THE BLINDS",
-                "4 AM",
-                "FUMEE",
-                "MONOLOGUE",
-                "ROOM",
-                "COMA WITH HIS THOUGHTS",
+                "ON MONDAYS",
                 "ESCARGOT",
-                "CHRYSALIDE",
+                "SEED",
+                "MONOLOGUE",
+                "DISCIPLINE",
+                "SOIREE",
+                "REPAS FRUGAL",
+                "A TROU FOR A MOON",
+                "LUMIERE ABOMINABLE",
+                "CUT IV",
+                "DRAG",
+                "DEEP OCEAN VAST SEA",
+                "FLUIDGUN",
+                "OMELETTE",
+                "MECHE",
+                "LABYRYNTH",
+                "THE SUN THORUGH THE BLINDS",
+                "UNTITLED",
+                "COMA WITH HIS THOUGHTS",
+                "TO CATCH AN EEL",
+                "TOURNESOL",
+                "CASCADE",
                 "NIGHT OF THE HUNTER",
                 "TRIPTYCH I",
                 "TRIPTYCH II",
-                "VOYEUR",
-                "VAMPYR",
-                "MECHE",
-                "SLEEPLESS",
-                "EARRING",
-                "MIDORI",
-                "CUT IV"
             ],
             
             init() {
@@ -853,7 +958,7 @@
                                 });
                             }
                         } catch (error) {
-                            
+                            // File not found or other network error, continue to next
                         }
                     }
                 }
@@ -878,10 +983,13 @@
                 this.isLoading = true;
                 const artworkMedia = document.getElementById('artwork-media');
                 
+                // Start wavy-out animation for current artwork
                 if (artworkMedia) {
-                    artworkMedia.classList.add('fade-out');
+                    artworkMedia.classList.remove('wavy-in'); // Remove previous 'in' class
+                    artworkMedia.classList.add('wavy-out');
                 }
                 
+                // Wait for the wavy-out animation to complete before changing the source
                 setTimeout(() => {
                     const mediaFile = this.mediaFiles[this.currentIndex];
                     this.currentIndex = (this.currentIndex + 1) % this.mediaFiles.length;
@@ -890,11 +998,13 @@
                     
                     const artworkDisplay = document.getElementById('artwork-display');
                     
+                    // Remove existing media element
                     const existingMedia = document.getElementById('artwork-media');
                     if (existingMedia && existingMedia.parentNode) {
                         existingMedia.parentNode.removeChild(existingMedia);
                     }
                     
+                    // Create new media element
                     const newMedia = mediaFile.type === 'video' 
                         ? document.createElement('video')
                         : document.createElement('img');
@@ -903,8 +1013,7 @@
                     newMedia.style.maxWidth = '60vw';
                     newMedia.style.maxHeight = '70vh';
                     newMedia.style.objectFit = 'contain';
-                    newMedia.style.transition = 'opacity 0.3s ease';
-                    newMedia.style.opacity = '0';
+                    newMedia.style.willChange = 'transform, clip-path'; // Add will-change for performance
                     
                     if (mediaFile.type === 'video') {
                         newMedia.autoplay = true;
@@ -913,8 +1022,9 @@
                         newMedia.controls = false;
                     }
                     
+                    // When the new media is loaded, apply wavy-in animation
                     newMedia.onload = newMedia.onloadeddata = () => {
-                        newMedia.style.opacity = '1';
+                        newMedia.classList.add('wavy-in'); // Apply wavy-in
                         this.isLoading = false;
                         
                         this.viewedArtworks.add(mediaFile.index);
@@ -938,7 +1048,7 @@
                     
                     artworkDisplay.appendChild(newMedia);
                     
-                }, 300);
+                }, 700); // This delay should match the wavy-out animation duration
             },
             
             showRandomArtwork() {
@@ -1036,6 +1146,7 @@
             mobileTouch.init();
         }
 
+        // Re-defining complete to ensure the new text display is handled correctly
         portfolioLoader.complete = function() {
             this.isLoading = false;
             document.getElementById('portfolio-loading').style.display = 'none';
@@ -1053,6 +1164,17 @@
             }
             
             setupPortfolioEvents();
+
+            // Show TAP // CLICK text 6 seconds after portfolio initialization
+            setTimeout(() => {
+                const tapClickContainer = document.getElementById('tap-click-container');
+                if (tapClickContainer) {
+                    tapClickContainer.classList.add('show');
+                    setTimeout(() => {
+                        tapClickContainer.classList.remove('show');
+                    }, 3000); 
+                }
+            }, 5000);
         };
 
         let cursorTimeout;
