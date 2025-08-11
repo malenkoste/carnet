@@ -2,9 +2,14 @@
 @font-face { font-family: 'RAMI'; src: url('../fonts/RAMI.woff2') format('woff2'); font-display: block; }
 @font-face { font-family: 'GENSCO'; src: url('../fonts/GENSCO.woff2') format('woff2'); font-display: swap; }
 
-body { margin:0; overflow:hidden; background:#000; font-family:'RAMI'; cursor:none !important; color:#fff; }
-/* Remove global font forcing so specific elements (#artwork-meta) can use GENSCO */
-* { cursor:none !important; }
+body { margin:0; overflow:hidden; background:#000; font-family:'RAMI'; color:#fff; }
+body.cursor-hidden { cursor:none; }
+
+/* Animated custom cursor (8 frames 64x64) */
+#custom-cursor { position:fixed; left:0; top:0; width:64px; height:64px; pointer-events:none; z-index:10000; display:none; /* hidden until JS activates */
+  background:url('../cursors/cursor1.png') center/contain no-repeat; image-rendering:crisp-edges; mix-blend-mode:normal; transition:opacity .2s; }
+#custom-cursor.animating { display:block; }
+@media (prefers-reduced-motion: reduce){ #custom-cursor { animation:none; } }
 
 /* Removed custom image cursor */
 
