@@ -1,0 +1,95 @@
+/* Core fonts */
+@font-face { font-family: 'RAMI'; src: url('../fonts/RAMI.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: 'GENSCO'; src: url('../fonts/GENSCO.woff2') format('woff2'); font-display: swap; }
+
+body { margin:0; overflow:hidden; background:#000; font-family:'RAMI'; cursor:none !important; color:#fff; }
+/* Remove global font forcing so specific elements (#artwork-meta) can use GENSCO */
+* { cursor:none !important; }
+
+/* Removed custom image cursor */
+
+#unity-container { position:absolute; inset:0; width:100vw; height:100vh; display:flex; justify-content:center; align-items:center; background:#000; z-index:100; }
+#unity-canvas { width:100vw; height:100vh; display:block; background:#000; touch-action:none; }
+#unity-loading { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:4em; z-index:200; text-align:center; }
+
+#fade-overlay { position:fixed; inset:0; background:transparent; z-index:1000; opacity:1; transition:opacity 2s ease-in-out; display:flex; justify-content:center; align-items:center; color:transparent; pointer-events:none; }
+
+#portfolio-content { display:none; position:absolute; inset:0; width:100vw; height:100vh; z-index:10; background:#000 url('assets/images/background.png') no-repeat center center fixed; background-size:cover; }
+#artwork-display { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; z-index:20; }
+#artwork-media { max-width:60vw; max-height:70vh; object-fit:contain; transition:opacity .3s ease; will-change:opacity,transform; }
+
+/* Glitch vanish / spawn (performance-friendly: opacity + transform only) */
+@keyframes glitch-out {
+  0% { opacity:1; transform:translate3d(0,0,0) scale(1); filter:none; }
+  15% { transform:translate3d(-4px,2px,0) scale(.98); }
+  30% { transform:translate3d(6px,-3px,0) scale(1.02); opacity:.85; }
+  45% { transform:translate3d(-3px,1px,0) scale(.97); opacity:.65; }
+  60% { transform:translate3d(5px,-2px,0) scale(1.03); opacity:.4; }
+  75% { transform:translate3d(-2px,2px,0) scale(.92); opacity:.2; }
+  100% { opacity:0; transform:translate3d(0,0,0) scale(.9); }
+}
+@keyframes glitch-in {
+  0% { opacity:0; transform:translate3d(0,0,0) scale(1.08); }
+  10% { opacity:.25; transform:translate3d(3px,-2px,0) scale(1.02); }
+  20% { opacity:.55; transform:translate3d(-5px,3px,0) scale(1.04); }
+  35% { opacity:.7; transform:translate3d(4px,-3px,0) scale(.98); }
+  50% { opacity:.85; transform:translate3d(-2px,2px,0) scale(1.01); }
+  65% { opacity:.9; transform:translate3d(1px,-1px,0) scale(.99); }
+  80% { opacity:.97; transform:translate3d(-1px,1px,0) scale(1.005); }
+  100% { opacity:1; transform:translate3d(0,0,0) scale(1); }
+}
+#artwork-media.wavy-out { animation:glitch-out .5s linear forwards; }
+#artwork-media.wavy-in { animation:glitch-in .5s linear forwards; }
+
+#portfolio-loading { position:fixed; inset:0; width:100vw; height:100vh; background:#000; z-index:1500; display:none; justify-content:center; align-items:center; opacity:1; transition:opacity 1s ease-out; }
+#portfolio-loading.fade-out { opacity:0; }
+#portfolio-loading-video { width:100vw; height:100vh; object-fit:cover; }
+
+#artwork-title { position:fixed; bottom:72px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:20px; white-space:nowrap; opacity:1; color:#ff0000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 4s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
+
+/* Secondary meta (technique / dimensions) */
+#artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:14px; line-height:1.15; color:#cc8d4e; opacity:.86; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 6s ease-in-out infinite; }
+#artwork-meta.hidden { opacity:0; }
+
+@keyframes meta-breathe {
+  0%,100% { transform:translateX(-50%) scale(1); letter-spacing:0; }
+  50% { transform:translateX(-50%) scale(1.04); letter-spacing:1px; }
+}
+/* (moved hidden rule above with meta styles) */
+
+@keyframes title-breathe {
+  0%,100% { transform:translateX(-50%) scale(1); letter-spacing:10px; }
+  50% { transform:translateX(-50%) scale(1.075); letter-spacing:18px; }
+}
+
+@keyframes title-spectrum {
+  0% { color:#ff0000; text-shadow:0 0 6px rgba(255,0,0,0.35); }
+  25% { color:#ffaa00; text-shadow:0 0 8px rgba(255,170,0,0.35); }
+  50% { color:#00ff00; text-shadow:0 0 6px rgba(0,255,0,0.35); }
+  75% { color:#ffaa00; text-shadow:0 0 8px rgba(255,170,0,0.35); }
+  100% { color:#ff0000; text-shadow:0 0 6px rgba(255,0,0,0.35); }
+}
+
+#bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }
+#mobile-touch-area { position:fixed; inset:0; z-index:25; background:transparent; display:none; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+#portfolio-content.active #mobile-touch-area { display:block; }
+
+/* Removed tap/click instruction styles */
+
+/* Responsive adjustments */
+@media (max-width:768px){
+  #artwork-media{max-width:100vw!important;max-height:100vh!important;width:100vw;height:100vh;object-fit:contain;object-position:center;position:absolute;inset:0;}
+  #artwork-title{font-size:18px;bottom:68px;}
+  #artwork-meta{font-size:12px;bottom:34px;}
+  #bottom-right-text{font-size:12px;bottom:15px;right:15px;}
+  /* Removed tap/click responsive adjustments */
+  #portfolio-loading-video{width:100vw!important;height:100vh!important;object-fit:cover;object-position:center;position:absolute;inset:0;}
+}
+@media (max-width:480px){
+  #artwork-title{font-size:16px;bottom:60px;}
+  #artwork-meta{font-size:11px;bottom:30px;}
+  #bottom-right-text{font-size:10px;bottom:10px;right:10px;}
+  /* Removed tap/click responsive adjustments */
+}
+@media (max-width:768px) and (orientation:landscape){ #artwork-title{bottom:55px;font-size:16px;} #artwork-meta{bottom:28px;} }
+@media (max-width:768px) and (orientation:portrait){ #artwork-title{bottom:70px;font-size:17px;} #artwork-meta{bottom:32px;} }
