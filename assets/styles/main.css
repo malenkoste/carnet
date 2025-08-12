@@ -84,6 +84,8 @@ body.cursor-hidden { cursor:none; }
 /* Responsive adjustments */
 @media (max-width:768px){
   #artwork-media{max-width:100vw!important;max-height:100vh!important;width:100vw;height:100vh;object-fit:contain;object-position:center;position:absolute;inset:0;}
+  /* Ensure centered text containers on mobile */
+  #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;}
   #artwork-title{font-size:18px;bottom:68px;}
   #artwork-meta{font-size:12px;bottom:34px;}
   #bottom-right-text{font-size:12px;bottom:15px;right:15px;}
@@ -91,10 +93,11 @@ body.cursor-hidden { cursor:none; }
   #portfolio-loading-video{width:100vw!important;height:100vh!important;object-fit:cover;object-position:center;position:absolute;inset:0;}
 }
 @media (max-width:480px){
+  #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;}
   #artwork-title{font-size:16px;bottom:60px;}
   #artwork-meta{font-size:11px;bottom:30px;}
   #bottom-right-text{font-size:10px;bottom:10px;right:10px;}
   /* Removed tap/click responsive adjustments */
 }
-@media (max-width:768px) and (orientation:landscape){ #artwork-title{bottom:55px;font-size:16px;} #artwork-meta{bottom:28px;} }
-@media (max-width:768px) and (orientation:portrait){ #artwork-title{bottom:70px;font-size:17px;} #artwork-meta{bottom:32px;} }
+@media (max-width:768px) and (orientation:landscape){ #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;} #artwork-title{bottom:55px;font-size:16px;} #artwork-meta{bottom:28px;} }
+@media (max-width:768px) and (orientation:portrait){ #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;} #artwork-title{bottom:70px;font-size:17px;} #artwork-meta{bottom:32px;} }
