@@ -224,7 +224,7 @@ const artworkManager={
 
 const portfolioLoader={isLoading:true,ready:false,minShowMs:4000,startTime:0,show(){const el=document.getElementById('portfolio-loading');const vid=document.getElementById('portfolio-loading-video'); if(el){el.style.display='flex'; el.classList.remove('fade-out');}
  if(vid){vid.playbackRate=0.66; vid.currentTime=0; const ensure=()=>{const p=vid.play(); if(p) p.catch(()=>setTimeout(ensure,400));}; ensure(); vid.addEventListener('stalled',ensure); vid.addEventListener('pause',()=>{ if(!portfolioLoader.ready) ensure(); });}
- this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); }};
+ this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); if(window.__showControlsHint) window.__showControlsHint(); }};
 
 function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork();}); }
  mobileTouch.init(); }
@@ -232,6 +232,16 @@ function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById
 document.addEventListener('keydown',e=>{const pc=document.getElementById('portfolio-content'); if(!pc||pc.style.display!=='block') return; if(e.key==='ArrowRight'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showPreviousArtwork(); }});
 
 window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
+
+// Controls hint overlay logic
+(function(){
+	const hintEl=document.getElementById('controls-hint'); if(!hintEl) return;
+	let shown=false, dismissed=false;
+	function dismiss(){ if(!shown||dismissed) return; dismissed=true; hintEl.classList.remove('visible'); hintEl.classList.add('fading-out'); setTimeout(()=>{ if(hintEl.parentNode) hintEl.parentNode.removeChild(hintEl); },450); }
+	function attachDismissOnce(){ ['click','keydown','touchstart','pointerdown'].forEach(evt=>window.addEventListener(evt,dismiss,{once:true,passive:true})); }
+	function showHint(){ if(shown||dismissed) return; shown=true; requestAnimationFrame(()=>hintEl.classList.add('visible')); attachDismissOnce(); }
+	window.__showControlsHint=showHint; // called when loader completes, so no initial timeout
+})();
 
 // Animated custom cursor setup (uses 8 separate PNG frames)
 (function(){
