@@ -12,7 +12,26 @@ function initializeAllAudio(){audioSystem.init(); audioSystem.startBackgroundMus
 ['click','keydown','touchstart'].forEach(evt=>document.addEventListener(evt,initializeAllAudio,{once:true}));
 
 const titleManager={getTitleForArtwork(i,record){return record?.title || `ARTWORK ${i}`;},getMeta(record){return record?.meta||'';}};
-const artworkTitle={titleEl:null,metaEl:null,init(){this.titleEl=document.getElementById('artwork-title');this.metaEl=document.getElementById('artwork-meta');},update(record){if(!record)return; if(this.titleEl){this.titleEl.textContent=titleManager.getTitleForArtwork(record.index,record);} if(this.metaEl){const m=titleManager.getMeta(record); if(m){this.metaEl.textContent=m; this.metaEl.classList.remove('hidden');} else {this.metaEl.textContent=''; this.metaEl.classList.add('hidden');}}}};
+const artworkTitle={titleEl:null,metaEl:null,init(){this.titleEl=document.getElementById('artwork-title');this.metaEl=document.getElementById('artwork-meta');},update(record){if(!record)return; if(this.titleEl){
+	// Title text
+	this.titleEl.textContent=titleManager.getTitleForArtwork(record.index,record);
+	// Optional full video link (only for entries with fullVideoUrl)
+	if(record.fullVideoUrl){
+		const br=document.createElement('br');
+		const a=document.createElement('a');
+		a.href=record.fullVideoUrl; a.target='_blank'; a.rel='noopener'; a.textContent=record.fullVideoLabel||'Full video';
+		a.style.fontSize='0.6em'; a.style.letterSpacing='2px'; a.style.marginLeft='6px'; a.style.textDecoration='underline';
+		// Wrap existing title and link in a container for layout without altering desktop CSS drastically
+		const wrapper=document.createElement('span'); wrapper.textContent='';
+		// Rebuild titleEl content
+		const titleText=document.createElement('span'); titleText.textContent=titleManager.getTitleForArtwork(record.index,record);
+		this.titleEl.textContent='';
+		this.titleEl.appendChild(titleText);
+		this.titleEl.appendChild(br);
+		this.titleEl.appendChild(a);
+	}
+ }
+ if(this.metaEl){const m=titleManager.getMeta(record); if(m){this.metaEl.textContent=m; this.metaEl.classList.remove('hidden');} else {this.metaEl.textContent=''; this.metaEl.classList.add('hidden');}}}};
 
 const mobileTouch={touchArea:null,init(){this.touchArea=document.getElementById('mobile-touch-area');if(this.touchArea&&isMobile){this.setupTouchEvents();}},setupTouchEvents(){let touchStartTime=0;this.touchArea.addEventListener('touchstart',e=>{e.preventDefault();touchStartTime=Date.now();},{passive:false});this.touchArea.addEventListener('touchend',e=>{e.preventDefault();if(Date.now()-touchStartTime<1000){audioSystem.playClickSound();setTimeout(()=>artworkManager.showNextArtwork(),20);}},{passive:false});['contextmenu','touchmove'].forEach(evt=>this.touchArea.addEventListener(evt,e=>{e.preventDefault();},{passive:false}));}};
 
