@@ -7,6 +7,14 @@ html, body { min-height: 100%; }
 body { margin:0; overflow:hidden; background:#f5f1e8 url('../images/background.png') center / cover no-repeat fixed; font-family:'RAMI'; color:#fff; }
 body.cursor-hidden { cursor:none; }
 
+/* Prevent iOS double-tap to zoom and odd gesture magnification on controls */
+html, body { touch-action: manipulation; }
+button, a, input, textarea, select { touch-action: manipulation; }
+/* Ensure form controls are large enough so iOS doesn’t auto-zoom them */
+#contact-form-popover input,
+#contact-form-popover textarea,
+#open-contact-form { font-size: 16px; }
+
  
 
 /* Mobile background behavior for smoother scrolling */
@@ -68,7 +76,7 @@ body.cursor-hidden { cursor:none; }
 #portfolio-loading.fade-out { opacity:0; }
 #portfolio-loading-video { width:100vw; height:100vh; object-fit:cover; }
 
-#artwork-title { position:fixed; bottom:72px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:33px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
+#artwork-title { position:fixed; bottom:62px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:33px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
 
 /* Secondary meta (technique / dimensions) */
 #artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:15px; line-height:1.15; color:#49235e; opacity: 0.8; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 4s ease-in-out infinite; }
@@ -103,6 +111,13 @@ body.cursor-hidden { cursor:none; }
 #contact-button .squashwrap{display:inline-block;}
 #contact-button .squashwrap.squash{animation:squash 160ms ease-out;}
 #contact-button, #contact-button * { cursor: none !important; }
+/* Visual-only extra bouncer */
+#fun-bouncer{position:fixed;top:0;left:0;z-index:10000;background:transparent;border:none;padding:0;margin:0;will-change:transform;}
+#fun-bouncer img{width:120px;height:120px;display:block;opacity:0.9;}
+#fun-bouncer .rotwrap{display:inline-block;animation:spin-360 10s linear infinite;}
+#fun-bouncer .squashwrap{display:inline-block;}
+#fun-bouncer .squashwrap.squash{animation:squash 160ms ease-out;}
+#fun-bouncer, #fun-bouncer * { cursor: none !important; }
 @keyframes spin-360{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 @keyframes squash{0%{transform:scale(1);}50%{transform:scaleX(0.9) scaleY(1.1);}100%{transform:scale(1);}}
 @keyframes contact-slide{
@@ -143,23 +158,23 @@ body.cursor-hidden { cursor:none; }
   #artwork-media{max-width:100vw!important;max-height:100vh!important;width:100vw;height:100vh;object-fit:contain;object-position:center;position:absolute;inset:0;}
   /* Ensure centered text containers on mobile */
   #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;}
-  #artwork-title{font-size:18px;bottom:68px;}
+  #artwork-title{font-size:18px;bottom:60px;}
   #artwork-meta{font-size:12px;bottom:34px;}
   #bottom-right-text{font-size:12px;bottom:15px;right:15px;}
   /* Removed tap/click responsive adjustments */
   #portfolio-loading-video{width:100vw!important;height:100vh!important;object-fit:cover;object-position:center;position:absolute;inset:0;}
   /* Reserve vertical space for captions so they don't overlap tall images */
   :root { --text-zone: 140px; }
-  #artwork-display{height:100vh; padding-bottom:calc(var(--text-zone) + env(safe-area-inset-bottom)); box-sizing:border-box;}
+  #artwork-display{height:100vh; padding-bottom:calc(var(--text-zone) * 0.65 + env(safe-area-inset-bottom)); box-sizing:border-box;}
   /* Constrain media height to leave space for text zone */
-  #artwork-media{max-height:calc(100vh - var(--text-zone) - env(safe-area-inset-bottom)); position:relative; inset:auto;}
+  #artwork-media{max-height:calc(100vh - var(--text-zone) * 0.65 - env(safe-area-inset-bottom)); position:relative; inset:auto;}
   /* Adjust title/meta bottoms relative to safe area */
-  #artwork-title{bottom:calc(70px + env(safe-area-inset-bottom));}
+  #artwork-title{bottom:calc(62px + env(safe-area-inset-bottom));}
   #artwork-meta{bottom:calc(36px + env(safe-area-inset-bottom));}
 }
 @media (max-width:480px){
   #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;}
-  #artwork-title{font-size:16px;bottom:calc(58px + env(safe-area-inset-bottom));}
+  #artwork-title{font-size:16px;bottom:calc(52px + env(safe-area-inset-bottom));}
   #artwork-meta{font-size:11px;bottom:calc(28px + env(safe-area-inset-bottom));}
   #bottom-right-text{font-size:10px;bottom:10px;right:10px;}
   /* Removed tap/click responsive adjustments */
@@ -167,14 +182,14 @@ body.cursor-hidden { cursor:none; }
 @media (max-width:768px) and (orientation:landscape){ 
   :root { --text-zone: 110px; }
   #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;}
-  #artwork-title{bottom:calc(50px + env(safe-area-inset-bottom));font-size:16px;}
+  #artwork-title{bottom:calc(44px + env(safe-area-inset-bottom));font-size:16px;}
   #artwork-meta{bottom:calc(24px + env(safe-area-inset-bottom));}
-  #artwork-media{max-height:calc(100vh - var(--text-zone) - env(safe-area-inset-bottom));}
+  #artwork-media{max-height:calc(100vh - var(--text-zone) * 0.7 - env(safe-area-inset-bottom));}
 }
 @media (max-width:768px) and (orientation:portrait){ 
   :root { --text-zone: 150px; }
   #artwork-title,#artwork-meta{left:0!important; right:0; width:100vw; transform:none!important; text-align:center;}
-  #artwork-title{bottom:calc(72px + env(safe-area-inset-bottom));font-size:17px;}
+  #artwork-title{bottom:calc(64px + env(safe-area-inset-bottom));font-size:17px;}
   #artwork-meta{bottom:calc(34px + env(safe-area-inset-bottom));}
-  #artwork-media{max-height:calc(100vh - var(--text-zone) - env(safe-area-inset-bottom));}
+  #artwork-media{max-height:calc(100vh - var(--text-zone) * 0.65 - env(safe-area-inset-bottom));}
 }

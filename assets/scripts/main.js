@@ -239,6 +239,22 @@ document.addEventListener('keydown',e=>{const pc=document.getElementById('portfo
 
 window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
 
+// Block mobile zoom (pinch + double-tap) to avoid breaking tap targets on iOS
+(function(){
+	const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+	if(!isTouch) return;
+	let lastTouchEnd = 0;
+	document.addEventListener('touchstart', function(e){
+		if(e.touches.length > 1){ e.preventDefault(); }
+	}, {passive:false});
+	document.addEventListener('touchend', function(e){
+		const now = Date.now();
+		if(now - lastTouchEnd <= 300){ e.preventDefault(); }
+		lastTouchEnd = now;
+	}, {passive:false});
+	document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+})();
+
 // Controls hint overlay logic
 // Controls hint removed
 
@@ -419,4 +435,48 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	function animate(){ cursorEl.style.backgroundImage=`url('${frameUrls[frameIndex]}')`; frameIndex=(frameIndex+1)%frameUrls.length; setTimeout(animate,frameInterval); }
 	window.addEventListener('pointermove',e=>{ if(!ready) return; cursorEl.style.transform=`translate3d(${e.clientX-hotspotX}px,${e.clientY-hotspotY}px,0)`; },{passive:true});
 	setTimeout(()=>{ if(!ready) start(); },1200); // fallback activation
+})();
+
+// Second visual-only bouncing icon that disappears on tap and respawns later
+(function(){
+	const el=document.getElementById('fun-bouncer');
+	if(!el) return;
+	const squashWrap=el.querySelector('.squashwrap');
+	let x=40,y=40,vx=120,vy=95; let last=performance.now(); let running=true;
+	function vp(){ const vv=window.visualViewport; return vv?{w:Math.floor(vv.width),h:Math.floor(vv.height)}:{w:innerWidth,h:innerHeight}; }
+	function reset(randomizePos=true){
+		const {w,h}=vp();
+		const r=el.getBoundingClientRect(); const bw=r.width||120, bh=r.height||120;
+		if(randomizePos){
+			x=Math.max(0, Math.min(w-bw, Math.random()*(w-bw)));
+			y=Math.max(0, Math.min(h-bh, Math.random()*(h-bh)));
+		} else {
+			x=Math.max(0, Math.min(w-bw, x)); y=Math.max(0, Math.min(h-bh, y));
+		}
+		vx = (Math.random()>0.5?1:-1)*(100+Math.random()*70);
+		vy = (Math.random()>0.5?1:-1)*(80+Math.random()*60);
+		el.style.transform=`translate3d(${x}px,${y}px,0)`;
+	}
+	function step(now){
+		if(!running) return;
+		const dt=(now-last)/1000; last=now;
+		const {w,h}=vp();
+		const r=el.getBoundingClientRect(); const bw=r.width||120, bh=r.height||120;
+		x+=vx*dt; y+=vy*dt; let hit=false;
+		if(x<=0){x=0;vx=Math.abs(vx);hit=true;} if(x+bw>=w){x=w-bw;vx=-Math.abs(vx);hit=true;}
+		if(y<=0){y=0;vy=Math.abs(vy);hit=true;} if(y+bh>=h){y=h-bh;vy=-Math.abs(vy);hit=true;}
+		el.style.transform=`translate3d(${x}px,${y}px,0)`;
+		if(hit&&squashWrap){squashWrap.classList.add('squash'); setTimeout(()=>squashWrap.classList.remove('squash'),160);}    
+		requestAnimationFrame(step);
+	}
+	// Disappear on tap/click and respawn after delay
+	function vanish(){
+		el.style.display='none'; running=false;
+		setTimeout(()=>{ el.style.display=''; running=true; reset(true); last=performance.now(); requestAnimationFrame(step); }, 2500);
+	}
+	el.addEventListener('click', (e)=>{ e.stopPropagation(); vanish(); });
+	el.addEventListener('touchend', (e)=>{ e.preventDefault(); e.stopPropagation(); vanish(); }, {passive:false});
+	if(window.visualViewport){ const reclamp=()=>reset(false); visualViewport.addEventListener('resize',reclamp); visualViewport.addEventListener('scroll',reclamp);} 
+	window.addEventListener('resize',()=>reset(false)); window.addEventListener('orientationchange',()=>reset(false));
+	reset(true); requestAnimationFrame(step);
 })();

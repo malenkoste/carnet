@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Livre d'Ezra – Portfolio</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png"/>
   <link rel="stylesheet" href="assets/styles/main.css"/>
@@ -26,6 +26,11 @@
     <!-- Contact icon button and popover -->
     <button id="contact-button" aria-label="Show contact info" aria-controls="contact-popover" aria-expanded="false">
       <span class="rotwrap"><span class="squashwrap"><img src="assets/images/contacticon.png"/></span></span>
+    </button>
+    
+    <!-- Visual-only bouncing icon (disappears on tap, respawns later) -->
+    <button id="fun-bouncer" aria-hidden="true" tabindex="-1">
+      <span class="rotwrap"><span class="squashwrap"><img src="assets/images/fun-bouncer.png"/></span></span>
     </button>
     <div id="contact-popover" role="dialog" aria-modal="false" aria-labelledby="contact-popover-title">
       <div id="contact-popover-title" class="sr-only">Contact</div>
