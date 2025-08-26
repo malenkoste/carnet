@@ -138,6 +138,17 @@ button, a, input, textarea, select { touch-action: manipulation; }
 #contact-popover, #contact-popover * , #contact-form-popover, #contact-form-popover * { cursor: none !important; }
 #contact-form-status{min-height:18px;font-size:12px;opacity:.85;margin-top:4px;}
 
+/* Third bouncing icon and watch popover */
+#watch-button{position:fixed;top:0;left:0;z-index:10000;background:transparent;border:none;padding:0;margin:0;cursor:pointer;will-change:transform;}
+#watch-button img{width:120px;height:120px;display:block;}
+#watch-button .rotwrap{display:inline-block;animation:spin-360 11s linear infinite;}
+#watch-button .squashwrap{display:inline-block;}
+#watch-button .squashwrap.squash{animation:squash 160ms ease-out;}
+#watch-button, #watch-button * { cursor: none !important; }
+#watch-popover{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10001;max-width:min(90vw,420px);padding:10px 12px;border-radius:8px;background:rgba(51,40,137,0.6);color:#fff;font-family:'GENSCO',sans-serif;font-size:13px;line-height:1.25;box-shadow:0 4px 18px rgba(0,0,0,0.25);backdrop-filter:saturate(1.2) blur(2px);display:none;overflow:hidden;}
+#watch-video-button{font-family:'GENSCO',sans-serif;font-size:14px;letter-spacing:0.5px;padding:6px 10px;border-radius:6px;border:1px solid #5c6de8;background:#6b7aff;color:#fff;cursor:none !important;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease;}
+#watch-video-button:hover,#watch-video-button:focus{filter:brightness(1.12);border-color:#7f8bff;box-shadow:0 0 0 3px rgba(107,122,255,0.25);} 
+
 /* Mobile-friendly sizing and anchoring */
 @media (max-width:480px){
   #contact-button{top:0;left:0;transform:none;} 

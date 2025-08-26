@@ -223,7 +223,7 @@ const artworkManager={
  this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); }};
 
 function isInContactUI(target){
-	const ids=['contact-button','contact-popover','contact-form-popover','open-contact-form','contact-form','contact-form-status','close-contact-form'];
+	const ids=['contact-button','contact-popover','contact-form-popover','open-contact-form','contact-form','contact-form-status','close-contact-form','watch-button','watch-popover','watch-video-button'];
 	for(const id of ids){ const el=document.getElementById(id); if(el && (target===el || (el.contains && el.contains(target)))) return true; }
 	return false;
 }
@@ -479,4 +479,51 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	if(window.visualViewport){ const reclamp=()=>reset(false); visualViewport.addEventListener('resize',reclamp); visualViewport.addEventListener('scroll',reclamp);} 
 	window.addEventListener('resize',()=>reset(false)); window.addEventListener('orientationchange',()=>reset(false));
 	reset(true); requestAnimationFrame(step);
+})();
+
+// Third bouncing icon with popover and "watch it" action
+(function(){
+	const btn=document.getElementById('watch-button');
+	const pop=document.getElementById('watch-popover');
+	const watchBtn=document.getElementById('watch-video-button');
+	if(!btn||!pop||!watchBtn) return;
+	const mobileOverlay=document.getElementById('mobile-touch-area');
+	// Bounce
+	const squashWrap=btn.querySelector('.squashwrap');
+	let x=80,y=80,vx=100,vy=130,last=performance.now();
+	function vp(){ const vv=visualViewport; return vv?{w:Math.floor(vv.width),h:Math.floor(vv.height)}:{w:innerWidth,h:innerHeight}; }
+	function step(now){
+		const dt=(now-last)/1000; last=now; const {w,h}=vp();
+		const r=btn.getBoundingClientRect(); const bw=r.width||120,bh=r.height||120;
+		x+=vx*dt; y+=vy*dt; let hit=false;
+		if(x<=0){x=0;vx=Math.abs(vx);hit=true;} if(x+bw>=w){x=w-bw;vx=-Math.abs(vx);hit=true;}
+		if(y<=0){y=0;vy=Math.abs(vy);hit=true;} if(y+bh>=h){y=h-bh;vy=-Math.abs(vy);hit=true;}
+		btn.style.transform=`translate3d(${x}px,${y}px,0)`;
+		if(hit&&squashWrap){squashWrap.classList.add('squash'); setTimeout(()=>squashWrap.classList.remove('squash'),160);}    
+		requestAnimationFrame(step);
+	}
+	const start=btn.getBoundingClientRect(); const {w:hvw,h:vvh}=vp(); const bw=start.width||120,bh=start.height||120;
+	x=Math.max(0,Math.min(hvw-bw,start.left)); y=Math.max(0,Math.min(vvh-bh,start.top));
+	vx*=(Math.random()>0.5?1:-1); vy*=(Math.random()>0.5?1:-1);
+	if(visualViewport){ const reclamp=()=>{ const {w,h}=vp(); x=Math.max(0,Math.min(w-bw,x)); y=Math.max(0,Math.min(h-bh,y)); btn.style.transform=`translate3d(${x}px,${y}px,0)`; }; visualViewport.addEventListener('resize',reclamp); visualViewport.addEventListener('scroll',reclamp); }
+	window.addEventListener('resize',()=>{ const {w,h}=vp(); x=Math.max(0,Math.min(w-bw,x)); y=Math.max(0,Math.min(h-bh,y)); btn.style.transform=`translate3d(${x}px,${y}px,0)`; });
+	requestAnimationFrame(step);
+	// Popover
+	function positionPop(){
+		const rect=btn.getBoundingClientRect(); const margin=10,gap=8;
+		let popW=pop.offsetWidth||Math.min(window.innerWidth*0.9,420);
+		let popH=pop.offsetHeight||120; let left=rect.left+rect.width/2-popW/2;
+		const spaceBelow=window.innerHeight-rect.bottom-gap; const spaceAbove=rect.top-gap;
+		let top=(spaceBelow>=popH||spaceBelow>=spaceAbove)?(rect.bottom+gap):(rect.top-gap-popH);
+		left=Math.max(margin,Math.min(window.innerWidth-popW-margin,left));
+		top=Math.max(margin,Math.min(window.innerHeight-popH-margin,top));
+		pop.style.left=left+'px'; pop.style.top=top+'px'; pop.style.transform='none';
+	}
+	function show(){ pop.style.display='block'; btn.setAttribute('aria-expanded','true'); if(mobileOverlay) mobileOverlay.style.display='none'; positionPop(); }
+	function hide(){ pop.style.display='none'; btn.setAttribute('aria-expanded','false'); if(mobileOverlay) mobileOverlay.style.display=''; }
+	btn.addEventListener('click',e=>{ e.stopPropagation(); if(pop.style.display==='block') hide(); else show(); });
+	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) hide(); });
+	window.addEventListener('resize',positionPop); window.addEventListener('orientationchange',positionPop);
+	// Watch action
+	watchBtn.addEventListener('click',()=>{ const url=pop.getAttribute('data-vimeo'); if(url) window.open(url,'_blank','noopener'); });
 })();

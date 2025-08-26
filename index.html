@@ -32,6 +32,15 @@
     <button id="fun-bouncer" aria-hidden="true" tabindex="-1">
       <span class="rotwrap"><span class="squashwrap"><img src="assets/images/fun-bouncer.png"/></span></span>
     </button>
+
+    <!-- Third icon: bouncy + popover with a Vimeo link -->
+    <button id="watch-button" aria-label="Open watch popover" aria-controls="watch-popover" aria-expanded="false">
+      <span class="rotwrap"><span class="squashwrap"><img src="assets/images/prayerbeads.png"/></span></span>
+    </button>
+    <div id="watch-popover" role="dialog" aria-modal="false" aria-labelledby="watch-popover-title" data-vimeo="https://vimeo.com/1103585979">
+      <div id="watch-popover-title" class="sr-only">Watch video</div>
+      <div style="margin-top:8px"><button id="watch-video-button" type="button">watch it</button></div>
+    </div>
     <div id="contact-popover" role="dialog" aria-modal="false" aria-labelledby="contact-popover-title">
       <div id="contact-popover-title" class="sr-only">Contact</div>
       <div style="margin-top:8px"><button id="open-contact-form" type="button">Send a message</button></div>
