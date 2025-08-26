@@ -7,14 +7,7 @@ html, body { min-height: 100%; }
 body { margin:0; overflow:hidden; background:#f5f1e8 url('../images/background.png') center / cover no-repeat fixed; font-family:'RAMI'; color:#fff; }
 body.cursor-hidden { cursor:none; }
 
-/* Controls hint overlay */
-#controls-hint{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.62);z-index:1600;opacity:0;pointer-events:none;transition:opacity .6s ease;padding:6vh 5vw;text-align:center;font-family:'GENSCO',sans-serif;}
-#controls-hint .controls-inner{font-size:clamp(14px,2.4vw,30px);line-height:1.25;letter-spacing:2px;color:#ffaa00;text-shadow:0 0 10px rgba(255,170,0,0.25);animation:hint-breathe 5s ease-in-out infinite;} 
-#controls-hint.visible .controls-inner{will-change:transform,opacity;}
-@keyframes hint-breathe {0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.04);opacity:.92;}}
-#controls-hint.visible{opacity:1;pointer-events:auto;} 
-#controls-hint.fading-out{opacity:0;pointer-events:none;transition:opacity .4s ease;} 
-@media (max-width:480px){#controls-hint .controls-inner{font-size:clamp(13px,4.2vw,22px);letter-spacing:1px;}}
+ 
 
 /* Mobile background behavior for smoother scrolling */
 @media (max-width:768px){
@@ -75,7 +68,7 @@ body.cursor-hidden { cursor:none; }
 #portfolio-loading.fade-out { opacity:0; }
 #portfolio-loading-video { width:100vw; height:100vh; object-fit:cover; }
 
-#artwork-title { position:fixed; bottom:72px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:29px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
+#artwork-title { position:fixed; bottom:72px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:33px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
 
 /* Secondary meta (technique / dimensions) */
 #artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:15px; line-height:1.15; color:#49235e; opacity: 0.8; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 4s ease-in-out infinite; }
@@ -95,12 +88,12 @@ body.cursor-hidden { cursor:none; }
 }
 
 @keyframes title-spectrum {
-  0% { color:#ff0000be; text-shadow:0 0 6px rgba(255, 0, 225, 0.35); }
-  20% { color:#9704ff; text-shadow:0 0 7px rgba(189, 23, 23, 0.467); }
-  40% { color:#7a2847; text-shadow:0 0 6px rgba(0, 94, 255, 0.35); }
-  60% { color:#700a98; text-shadow:0 0 8px rgba(16, 16, 231, 0.35); }
-  80% { color:#711491; text-shadow:0 0 6px rgba(0, 64, 255, 0.6); }
-  100% { color:#2c0092; text-shadow:0 0 6px rgba(255,0,0,0.35); }
+  0% { color:#ffffffe2; text-shadow:0 0 6px rgb(161, 61, 255); }
+  20% { color:#f8ff72; text-shadow:0 0 7px rgb(243, 45, 45); }
+  40% { color:#ffffff; text-shadow:0 0 6px rgb(56, 127, 249); }
+  60% { color:#25ff03; text-shadow:0 0 8px rgb(16, 16, 231); }
+  80% { color:#f5ff2e; text-shadow:0 0 6px rgb(255, 87, 87); }
+  100% { color:#ffd093; text-shadow:0 0 6px rgb(102, 255, 0); }
 }
 
 #bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }
