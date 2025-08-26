@@ -347,36 +347,70 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	const btn=document.getElementById('contact-button');
 	if(!btn) return;
 	const squashWrap=btn.querySelector('.squashwrap');
-	let x=20, y=20; let vx=140, vy=110; // px/sec
+	let x=20, y=20; let vx=140, vy=110; // px/sec in CSS px
 	let last=performance.now();
+	function getViewport(){
+		const vv = window.visualViewport;
+		if(vv){ return { w: Math.floor(vv.width), h: Math.floor(vv.height) }; }
+		return { w: window.innerWidth, h: window.innerHeight };
+	}
 	function step(now){
 		const dt=(now-last)/1000; last=now;
-		const w=window.innerWidth, h=window.innerHeight;
-		const rect=btn.getBoundingClientRect();
-		const bw=rect.width||144; const bh=rect.height||144;
+		const {w,h}=getViewport();
+		// Measure the moving element itself (translation doesn't affect its size)
+		const rectNow=btn.getBoundingClientRect();
+		const bw = rectNow.width || 144;
+		const bh = rectNow.height || 144;
 		x+=vx*dt; y+=vy*dt;
 		let collided=false;
 		if(x<=0){ x=0; vx=Math.abs(vx); collided=true; }
-		if(x+bw>=w){ x=w-bw; vx=-Math.abs(vx); collided=true; }
+		if(x + bw >= w){ x = Math.max(0, w - bw); vx = -Math.abs(vx); collided=true; }
 		if(y<=0){ y=0; vy=Math.abs(vy); collided=true; }
-		if(y+bh>=h){ y=h-bh; vy=-Math.abs(vy); collided=true; }
+		if(y + bh >= h){ y = Math.max(0, h - bh); vy = -Math.abs(vy); collided=true; }
 		btn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
 		if(collided && squashWrap){ squashWrap.classList.add('squash'); setTimeout(()=>squashWrap.classList.remove('squash'),160); }
 		requestAnimationFrame(step);
 	}
 	// Start near current position
 	const startRect=btn.getBoundingClientRect();
-	x=startRect.left; y=startRect.top;
+	const vp0=getViewport();
+	const bw0 = startRect.width || 144;
+	const bh0 = startRect.height || 144;
+	x = Math.max(0, Math.min(vp0.w - bw0, startRect.left));
+	y = Math.max(0, Math.min(vp0.h - bh0, startRect.top));
 	// Randomize direction a bit
 	vx *= (Math.random()>0.5?1:-1); vy *= (Math.random()>0.5?1:-1);
+	// Re-clamp on viewport changes (iOS address bar collapse/expand etc.)
+	const reclamp = ()=>{
+		const {w,h}=getViewport();
+		const rectNow=btn.getBoundingClientRect();
+		const bw = rectNow.width || 144; const bh = rectNow.height || 144;
+		x = Math.max(0, Math.min(w - bw, x));
+		y = Math.max(0, Math.min(h - bh, y));
+		btn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+	};
+	if(window.visualViewport){
+		window.visualViewport.addEventListener('resize', reclamp);
+		window.visualViewport.addEventListener('scroll', reclamp);
+	}
+	window.addEventListener('orientationchange', reclamp);
+	window.addEventListener('resize', reclamp);
 	requestAnimationFrame(step);
 })();
 
 // Ensure background fills mobile screens fully by forcing cover on resize/orientation
 (function(){
 	const apply=()=>{
-		if(window.innerWidth<=768){ document.body.style.backgroundSize='cover'; document.body.style.backgroundRepeat='no-repeat'; }
-		else { document.body.style.backgroundSize=''; document.body.style.backgroundRepeat=''; }
+		if(window.innerWidth<=768){ 
+			document.body.style.backgroundSize='cover';
+			document.body.style.backgroundRepeat='no-repeat';
+			const pc=document.getElementById('portfolio-content');
+			if(pc){ pc.style.backgroundImage = getComputedStyle(document.body).backgroundImage; pc.style.backgroundSize='cover'; pc.style.backgroundRepeat='no-repeat'; pc.style.backgroundPosition='center top'; pc.style.backgroundAttachment='scroll'; pc.style.backgroundColor='transparent'; }
+		} else {
+			const pc=document.getElementById('portfolio-content');
+			if(pc){ pc.style.backgroundImage=''; pc.style.backgroundSize=''; pc.style.backgroundRepeat=''; pc.style.backgroundPosition=''; pc.style.backgroundAttachment=''; }
+			document.body.style.backgroundSize=''; document.body.style.backgroundRepeat='';
+		}
 	};
 	window.addEventListener('resize',apply); window.addEventListener('orientationchange',apply); apply();
 })();

@@ -2,6 +2,8 @@
 @font-face { font-family: 'RAMI'; src: url('../fonts/RAMI.woff2') format('woff2'); font-display: block; }
 @font-face { font-family: 'GENSCO'; src: url('../fonts/GENSCO.woff2') format('woff2'); font-display: swap; }
 
+html, body { min-height: 100%; }
+
 body { margin:0; overflow:hidden; background:#f5f1e8 url('../images/background.png') center / cover no-repeat fixed; font-family:'RAMI'; color:#fff; }
 body.cursor-hidden { cursor:none; }
 
@@ -17,6 +19,15 @@ body.cursor-hidden { cursor:none; }
 /* Mobile background behavior for smoother scrolling */
 @media (max-width:768px){
   body{ background-attachment: scroll; background-position: center top; background-size: cover; background-repeat: no-repeat; }
+  /* Ensure background fills viewport even with dynamic browser chrome */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background: inherit;
+    pointer-events:none;
+  }
 }
 
 /* Animated custom cursor (8 frames 64x64) */
@@ -64,10 +75,10 @@ body.cursor-hidden { cursor:none; }
 #portfolio-loading.fade-out { opacity:0; }
 #portfolio-loading-video { width:100vw; height:100vh; object-fit:cover; }
 
-#artwork-title { position:fixed; bottom:72px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:20px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
+#artwork-title { position:fixed; bottom:72px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:29px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
 
 /* Secondary meta (technique / dimensions) */
-#artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:13px; line-height:1.15; color:#49235e; opacity: 0.8; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 4s ease-in-out infinite; }
+#artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:15px; line-height:1.15; color:#49235e; opacity: 0.8; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 4s ease-in-out infinite; }
 #artwork-meta.hidden { opacity:0; }
 
 @keyframes meta-breathe {
@@ -84,16 +95,16 @@ body.cursor-hidden { cursor:none; }
 }
 
 @keyframes title-spectrum {
-  0% { color:#701035; text-shadow:0 0 6px rgba(0, 255, 247, 0.35); }
-  20% { color:#53048f; text-shadow:0 0 8px rgba(174, 255, 0, 0.35); }
+  0% { color:#ff0000be; text-shadow:0 0 6px rgba(255, 0, 225, 0.35); }
+  20% { color:#9704ff; text-shadow:0 0 7px rgba(189, 23, 23, 0.467); }
   40% { color:#7a2847; text-shadow:0 0 6px rgba(0, 94, 255, 0.35); }
-  60% { color:#700a98; text-shadow:0 0 8px rgba(255,170,0,0.35); }
+  60% { color:#700a98; text-shadow:0 0 8px rgba(16, 16, 231, 0.35); }
   80% { color:#711491; text-shadow:0 0 6px rgba(0, 64, 255, 0.6); }
-  100% { color:#920000; text-shadow:0 0 6px rgba(255,0,0,0.35); }
+  100% { color:#2c0092; text-shadow:0 0 6px rgba(255,0,0,0.35); }
 }
 
 #bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }
-#contact-button{position:fixed;top:16px;left:16px;z-index:10001;background:transparent;border:none;padding:0;margin:0;cursor:pointer;}
+#contact-button{position:fixed;top:0;left:0;z-index:10001;background:transparent;border:none;padding:0;margin:0;cursor:pointer;will-change:transform;}
 #contact-button img{width:144px;height:144px;display:block;}
 #contact-button .rotwrap{display:inline-block;animation:spin-360 12s linear infinite;}
 #contact-button .squashwrap{display:inline-block;}
@@ -121,7 +132,7 @@ body.cursor-hidden { cursor:none; }
 
 /* Mobile-friendly sizing and anchoring */
 @media (max-width:480px){
-  #contact-button{top:12px;left:50%;transform:translateX(-50%);} 
+  #contact-button{top:0;left:0;transform:none;} 
   #contact-button img{width:120px;height:120px;}
   #contact-popover{top:52px;max-width:min(94vw,420px);font-size:12px;padding:8px 10px;}
   #open-contact-form{font-size:13px;padding:6px 9px;}
