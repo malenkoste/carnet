@@ -16,7 +16,7 @@ body.cursor-hidden { cursor:none; }
 
 /* Mobile background behavior for smoother scrolling */
 @media (max-width:768px){
-  body{ background-attachment: scroll; background-position: center top; }
+  body{ background-attachment: scroll; background-position: center top; background-size: cover; background-repeat: no-repeat; }
 }
 
 /* Animated custom cursor (8 frames 64x64) */
@@ -94,9 +94,13 @@ body.cursor-hidden { cursor:none; }
 
 #bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }
 #contact-button{position:fixed;top:16px;left:16px;z-index:10001;background:transparent;border:none;padding:0;margin:0;cursor:pointer;}
-#contact-button img{width:144px;height:144px;display:block;animation:spin-360 12s linear infinite;}
+#contact-button img{width:144px;height:144px;display:block;}
+#contact-button .rotwrap{display:inline-block;animation:spin-360 12s linear infinite;}
+#contact-button .squashwrap{display:inline-block;}
+#contact-button .squashwrap.squash{animation:squash 160ms ease-out;}
 #contact-button, #contact-button * { cursor: none !important; }
 @keyframes spin-360{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes squash{0%{transform:scale(1);}50%{transform:scaleX(0.9) scaleY(1.1);}100%{transform:scale(1);}}
 @keyframes contact-slide{
   0%{ transform:translateX(calc(-50% - 45vw)); }
   100%{ transform:translateX(calc(-50% + 45vw)); }

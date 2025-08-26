@@ -254,6 +254,7 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	const btn=document.getElementById('contact-button');
 	const pop=document.getElementById('contact-popover');
 	if(!btn||!pop) return;
+	const mobileOverlay=document.getElementById('mobile-touch-area');
 		function hide(){ pop.style.display='none'; btn.setAttribute('aria-expanded','false'); }
 		function show(){
 			// Center popover under the current animated button position
@@ -266,10 +267,11 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 			pop.style.transform = 'none';
 			pop.style.display='block';
 			btn.setAttribute('aria-expanded','true');
+			if(mobileOverlay) mobileOverlay.style.display='none';
 		}
 	btn.addEventListener('click',e=>{ e.stopPropagation(); if(pop.style.display==='block'){ hide(); } else { show(); } });
-	// Click outside closes
-	document.addEventListener('click',e=>{ if(!pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) hide(); });
+	// Outside tap/click closes
+	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) { hide(); if(mobileOverlay) mobileOverlay.style.display=''; } });
 	// Escape closes
 	document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
 })();
@@ -282,38 +284,40 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		const statusEl=document.getElementById('contact-form-status');
 		const form=document.getElementById('contact-form');
 		if(!openBtn||!formPop||!form||!statusEl) return;
-		function close(){ formPop.style.display='none'; }
+		const mobileOverlay=document.getElementById('mobile-touch-area');
+		function close(){ formPop.style.display='none'; if(mobileOverlay) mobileOverlay.style.display=''; }
+		function positionFormNearIcon(){
+			try{
+				const btn=document.getElementById('contact-button');
+				if(!btn || formPop.style.display!=='block') return;
+				const rect=btn.getBoundingClientRect();
+				const margin=10, gap=8;
+				let popW=formPop.offsetWidth || Math.min(window.innerWidth*0.9, 320);
+				let popH=formPop.offsetHeight || 220;
+				let left = rect.left + rect.width/2 - popW/2;
+				const spaceBelow = window.innerHeight - rect.bottom - gap;
+				const spaceAbove = rect.top - gap;
+				let top = (spaceBelow >= popH || spaceBelow >= spaceAbove)
+					? (rect.bottom + gap)
+					: (rect.top - gap - popH);
+				left = Math.max(margin, Math.min(window.innerWidth - popW - margin, left));
+				top = Math.max(margin, Math.min(window.innerHeight - popH - margin, top));
+				formPop.style.left = left + 'px';
+				formPop.style.top = top + 'px';
+				formPop.style.transform='none';
+			}catch(e){}
+		}
 		function open(){ 
 			formPop.style.display='block'; 
 			statusEl.textContent=''; 
-			try{
-				if(isMobile){
-					const btn=document.getElementById('contact-button');
-					if(btn){
-						const rect=btn.getBoundingClientRect();
-						const popWidth=Math.min(window.innerWidth*0.94,460);
-						const left=Math.max(10, Math.min(window.innerWidth - popWidth - 10, rect.left + rect.width/2 - popWidth/2));
-						formPop.style.left=left+'px';
-						formPop.style.top=Math.max(10, rect.bottom + 8)+'px';
-						formPop.style.transform='none';
-					}
-				} else {
-					const info=document.getElementById('contact-popover');
-					let top=60, left=16;
-					if(info && info.style.display==='block'){
-						const r=info.getBoundingClientRect();
-						top = Math.max(10, r.bottom + 8);
-						left = 16; // left of the screen
-					}
-					formPop.style.left=left+'px';
-					formPop.style.top=top+'px';
-					formPop.style.transform='none';
-				}
-			}catch(e){}
+			if(mobileOverlay) mobileOverlay.style.display='none';
+			positionFormNearIcon();
 		}
 		openBtn.addEventListener('click',e=>{ e.stopPropagation(); open(); });
 		closeBtn&&closeBtn.addEventListener('click',e=>{ e.stopPropagation(); close(); });
-		document.addEventListener('click',e=>{ if(formPop.style.display==='block' && !formPop.contains(e.target) && e.target!==openBtn) close(); });
+		document.addEventListener('pointerdown',e=>{ if(formPop.style.display==='block' && !formPop.contains(e.target) && e.target!==openBtn) close(); });
+		window.addEventListener('resize',positionFormNearIcon);
+		window.addEventListener('orientationchange',positionFormNearIcon);
 		document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
 		form.addEventListener('submit',async e=>{
 			e.preventDefault();
@@ -337,6 +341,45 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 			}
 		});
 	})();
+
+// Bouncing movement for contact button (desktop and mobile)
+(function(){
+	const btn=document.getElementById('contact-button');
+	if(!btn) return;
+	const squashWrap=btn.querySelector('.squashwrap');
+	let x=20, y=20; let vx=140, vy=110; // px/sec
+	let last=performance.now();
+	function step(now){
+		const dt=(now-last)/1000; last=now;
+		const w=window.innerWidth, h=window.innerHeight;
+		const rect=btn.getBoundingClientRect();
+		const bw=rect.width||144; const bh=rect.height||144;
+		x+=vx*dt; y+=vy*dt;
+		let collided=false;
+		if(x<=0){ x=0; vx=Math.abs(vx); collided=true; }
+		if(x+bw>=w){ x=w-bw; vx=-Math.abs(vx); collided=true; }
+		if(y<=0){ y=0; vy=Math.abs(vy); collided=true; }
+		if(y+bh>=h){ y=h-bh; vy=-Math.abs(vy); collided=true; }
+		btn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+		if(collided && squashWrap){ squashWrap.classList.add('squash'); setTimeout(()=>squashWrap.classList.remove('squash'),160); }
+		requestAnimationFrame(step);
+	}
+	// Start near current position
+	const startRect=btn.getBoundingClientRect();
+	x=startRect.left; y=startRect.top;
+	// Randomize direction a bit
+	vx *= (Math.random()>0.5?1:-1); vy *= (Math.random()>0.5?1:-1);
+	requestAnimationFrame(step);
+})();
+
+// Ensure background fills mobile screens fully by forcing cover on resize/orientation
+(function(){
+	const apply=()=>{
+		if(window.innerWidth<=768){ document.body.style.backgroundSize='cover'; document.body.style.backgroundRepeat='no-repeat'; }
+		else { document.body.style.backgroundSize=''; document.body.style.backgroundRepeat=''; }
+	};
+	window.addEventListener('resize',apply); window.addEventListener('orientationchange',apply); apply();
+})();
 
 // Animated custom cursor setup (uses 8 separate PNG frames)
 (function(){
