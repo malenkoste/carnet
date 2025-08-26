@@ -4,7 +4,7 @@ let currentArtworkName='';
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints>2) || window.innerWidth<=768;
 
 // Basic audio (no Unity context)
-const audioSystem={backgroundAudio:null,clickAudio:null,audioInitialized:false,_retryTimer:null,async init(){try{if(this.audioInitialized) return; this.backgroundAudio=new Audio('assets/audio/background.mp3');this.backgroundAudio.loop=true;this.backgroundAudio.volume=0.35;this.clickAudio=new Audio('assets/audio/click.mp3');this.clickAudio.volume=0.55;this.audioInitialized=true;}catch(e){}},async startBackgroundMusic(){if(!this.audioInitialized) return; if(!this.backgroundAudio) return; try{await this.backgroundAudio.play(); clearTimeout(this._retryTimer);}catch(e){ // autoplay blocked, retry soon
+const audioSystem={backgroundAudio:null,clickAudio:null,audioInitialized:false,_retryTimer:null,async init(){try{if(this.audioInitialized) return; this.backgroundAudio=new Audio('assets/audio/background.mp3');this.backgroundAudio.loop=true;this.backgroundAudio.volume=0.35;this.clickAudio=new Audio('assets/audio/click.mp3');this.clickAudio.volume=0.198;this.audioInitialized=true;}catch(e){}},async startBackgroundMusic(){if(!this.audioInitialized) return; if(!this.backgroundAudio) return; try{await this.backgroundAudio.play(); clearTimeout(this._retryTimer);}catch(e){ // autoplay blocked, retry soon
 			clearTimeout(this._retryTimer);
 			this._retryTimer=setTimeout(()=>this.startBackgroundMusic(),1200);
 		}},playClickSound(){if(this.clickAudio&&this.audioInitialized){try{this.clickAudio.currentTime=0;const p=this.clickAudio.play();if(p)p.catch(()=>{});}catch(e){}}}};
@@ -139,9 +139,7 @@ const artworkManager={
 		this.currentIndex=nextIndex;
 		currentArtworkName=mediaFile.name;
 		this.viewedArtworks.add(mediaFile.index);
-		if(this.viewedArtworks.size===this.mediaFiles.length){
-			const br=document.getElementById('bottom-right-text'); if(br) br.style.display='block';
-		}
+	// Legacy bottom-right contact box disabled
 		artworkTitle.update(mediaFile.meta);
 		this.isLoading=false;
 		if(!this.initialArtworkDisplayed) this.initialArtworkDisplayed=true;
@@ -185,9 +183,7 @@ const artworkManager={
 		this.currentIndex=prevIndex;
 		currentArtworkName=mediaFile.name;
 		this.viewedArtworks.add(mediaFile.index);
-		if(this.viewedArtworks.size===this.mediaFiles.length){
-			const br=document.getElementById('bottom-right-text'); if(br) br.style.display='block';
-		}
+	// Legacy bottom-right contact box disabled
 		artworkTitle.update(mediaFile.meta);
 		this.isLoading=false;
 		this.attemptReady();
@@ -226,10 +222,20 @@ const portfolioLoader={isLoading:true,ready:false,minShowMs:4000,startTime:0,sho
  if(vid){vid.playbackRate=0.66; vid.currentTime=0; const ensure=()=>{const p=vid.play(); if(p) p.catch(()=>setTimeout(ensure,400));}; ensure(); vid.addEventListener('stalled',ensure); vid.addEventListener('pause',()=>{ if(!portfolioLoader.ready) ensure(); });}
  this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); if(window.__showControlsHint) window.__showControlsHint(); }};
 
-function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork();}); }
+function isInContactUI(target){
+	const ids=['contact-button','contact-popover','contact-form-popover','open-contact-form','contact-form','contact-form-status','close-contact-form'];
+	for(const id of ids){ const el=document.getElementById(id); if(el && (target===el || (el.contains && el.contains(target)))) return true; }
+	return false;
+}
+function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{
+		if(isInContactUI(e.target)) { e.stopPropagation(); e.preventDefault(); return; }
+		e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork();
+	}); }
  mobileTouch.init(); }
 
-document.addEventListener('keydown',e=>{const pc=document.getElementById('portfolio-content'); if(!pc||pc.style.display!=='block') return; if(e.key==='ArrowRight'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showPreviousArtwork(); }});
+document.addEventListener('keydown',e=>{const pc=document.getElementById('portfolio-content'); if(!pc||pc.style.display!=='block') return; 
+	if(isInContactUI(document.activeElement) || isInContactUI(e.target)) { return; }
+	if(e.key==='ArrowRight'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showPreviousArtwork(); }});
 
 window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
 
@@ -243,12 +249,101 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	window.__showControlsHint=showHint; // called when loader completes, so no initial timeout
 })();
 
+// Contact popover toggle (non-intrusive)
+(function(){
+	const btn=document.getElementById('contact-button');
+	const pop=document.getElementById('contact-popover');
+	if(!btn||!pop) return;
+		function hide(){ pop.style.display='none'; btn.setAttribute('aria-expanded','false'); }
+		function show(){
+			// Center popover under the current animated button position
+			const rect = btn.getBoundingClientRect();
+			const popWidth = Math.min(window.innerWidth*0.9, 420);
+			const left = Math.max(10, Math.min(window.innerWidth - popWidth - 10, rect.left + rect.width/2 - popWidth/2));
+			pop.style.left = left + 'px';
+			pop.style.top = Math.max(10, rect.bottom + 8) + 'px';
+			pop.style.maxWidth = popWidth + 'px';
+			pop.style.transform = 'none';
+			pop.style.display='block';
+			btn.setAttribute('aria-expanded','true');
+		}
+	btn.addEventListener('click',e=>{ e.stopPropagation(); if(pop.style.display==='block'){ hide(); } else { show(); } });
+	// Click outside closes
+	document.addEventListener('click',e=>{ if(!pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) hide(); });
+	// Escape closes
+	document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
+})();
+
+	// Contact form popover and submission (optional endpoint)
+	(function(){
+		const openBtn=document.getElementById('open-contact-form');
+		const formPop=document.getElementById('contact-form-popover');
+		const closeBtn=document.getElementById('close-contact-form');
+		const statusEl=document.getElementById('contact-form-status');
+		const form=document.getElementById('contact-form');
+		if(!openBtn||!formPop||!form||!statusEl) return;
+		function close(){ formPop.style.display='none'; }
+		function open(){ 
+			formPop.style.display='block'; 
+			statusEl.textContent=''; 
+			try{
+				if(isMobile){
+					const btn=document.getElementById('contact-button');
+					if(btn){
+						const rect=btn.getBoundingClientRect();
+						const popWidth=Math.min(window.innerWidth*0.94,460);
+						const left=Math.max(10, Math.min(window.innerWidth - popWidth - 10, rect.left + rect.width/2 - popWidth/2));
+						formPop.style.left=left+'px';
+						formPop.style.top=Math.max(10, rect.bottom + 8)+'px';
+						formPop.style.transform='none';
+					}
+				} else {
+					const info=document.getElementById('contact-popover');
+					let top=60, left=16;
+					if(info && info.style.display==='block'){
+						const r=info.getBoundingClientRect();
+						top = Math.max(10, r.bottom + 8);
+						left = 16; // left of the screen
+					}
+					formPop.style.left=left+'px';
+					formPop.style.top=top+'px';
+					formPop.style.transform='none';
+				}
+			}catch(e){}
+		}
+		openBtn.addEventListener('click',e=>{ e.stopPropagation(); open(); });
+		closeBtn&&closeBtn.addEventListener('click',e=>{ e.stopPropagation(); close(); });
+		document.addEventListener('click',e=>{ if(formPop.style.display==='block' && !formPop.contains(e.target) && e.target!==openBtn) close(); });
+		document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+		form.addEventListener('submit',async e=>{
+			e.preventDefault();
+			statusEl.textContent='Sending…';
+			const fd=new FormData(form);
+			const endpoint=formPop.getAttribute('data-endpoint');
+			if(endpoint){
+				try{
+					fd.append('_subject','Portfolio message');
+					fd.append('_origin', window.location.href);
+					const res=await fetch(endpoint,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
+					if(res.ok){ statusEl.textContent='Sent! Thank you.'; form.reset(); } else { statusEl.textContent='Failed to send. Please try again.'; }
+				}catch(err){ statusEl.textContent='Network error. Please try later.'; }
+			} else {
+				// Fallback: open mailto with subject/body
+				const email='ezrasilva@proton.me';
+				const subject=encodeURIComponent('Portfolio message');
+				const body=encodeURIComponent(`${fd.get('message') || ''}`);
+				window.location.href=`mailto:${email}?subject=${subject}&body=${body}`;
+				statusEl.textContent='Opening mail client…';
+			}
+		});
+	})();
+
 // Animated custom cursor setup (uses 8 separate PNG frames)
 (function(){
 	const prefersCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches; if(prefersCoarse) return;
 	const cursorEl=document.getElementById('custom-cursor'); if(!cursorEl) return;
 	const frameUrls=[1,2,3,4,5,6,7,8].map(i=>`assets/cursors/cursor${i}.png`);
-	let loaded=0; let ready=false; let frameIndex=0; const hotspotX=8,hotspotY=8; const frameInterval=60; // ~16fps
+	let loaded=0; let ready=false; let frameIndex=0; const hotspotX=32,hotspotY=0; const frameInterval=60; // ~16fps
 	frameUrls.forEach(u=>{ const img=new Image(); img.onload=done; img.onerror=done; img.src=u; function done(){ if(++loaded===frameUrls.length){ start(); } }});
 	function start(){ if(ready) return; ready=true; document.body.classList.add('cursor-hidden'); cursorEl.classList.add('animating'); animate(); }
 	function animate(){ cursorEl.style.backgroundImage=`url('${frameUrls[frameIndex]}')`; frameIndex=(frameIndex+1)%frameUrls.length; setTimeout(animate,frameInterval); }
