@@ -622,7 +622,7 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 
 // Landscape overlay controller: pause all animations/audio in mobile landscape
 (function(){
-	const mql = window.matchMedia('(max-width: 900px) and (orientation: landscape) and (hover: none) and (pointer: coarse)');
+	const mql = window.matchMedia('(orientation: landscape) and (hover: none) and (pointer: coarse)');
 	const overlay = document.getElementById('landscape-lock');
 	function pauseAll(){
 		// mark paused
