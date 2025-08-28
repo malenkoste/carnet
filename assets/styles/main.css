@@ -79,7 +79,7 @@ button, a, input, textarea, select { touch-action: manipulation; }
 #artwork-title { position:fixed; bottom:62px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9999; font-size:33px; white-space:nowrap; opacity:1; color:#000000; font-family:'RAMI'; letter-spacing:12px; animation:title-breathe 6s ease-in-out infinite, title-spectrum 24s linear infinite; will-change:transform,color; text-shadow:0 0 6px rgba(255,0,0,0.25); }
 
 /* Secondary meta (technique / dimensions) */
-#artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:15px; line-height:1.15; color:#20055e; opacity: 0.8; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 4s ease-in-out infinite; }
+#artwork-meta { position:fixed; bottom:42px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:9998; font-family:'GENSCO',sans-serif; font-size:15px; line-height:1.15; color:#fff7d5; opacity: 0.8; letter-spacing:0; white-space:nowrap; transition:opacity .25s ease; animation:meta-breathe 4s ease-in-out infinite; }
 #artwork-meta.hidden { opacity:0; }
 
 @keyframes meta-breathe {
@@ -96,12 +96,12 @@ button, a, input, textarea, select { touch-action: manipulation; }
 }
 
 @keyframes title-spectrum {
-  0% { color:#460789e2; text-shadow:0 0 6px rgb(25, 147, 199); }
-  20% { color:#26066b; text-shadow:0 0 7px rgba(45, 243, 170, 0.761); }
-  40% { color:#1e075b; text-shadow:0 0 6px rgb(56, 127, 249); }
-  60% { color:#2d0370; text-shadow:0 0 8px rgb(16, 16, 231); }
-  80% { color:#12075ce8; text-shadow:0 0 6px rgb(33, 20, 216); }
-  100% { color:#440583; text-shadow:0 0 6px rgb(128, 23, 185); }
+  0% { color:#9dfc71e2; text-shadow:0 0 6px rgb(10, 108, 150); }
+  20% { color:#85fc4fe2; text-shadow:0 0 7px rgba(19, 158, 107, 0.761); }
+  40% { color:#96fb67e2; text-shadow:0 0 6px rgb(28, 94, 207); }
+  60% { color:#c6ffabe2; text-shadow:0 0 8px rgb(16, 16, 231); }
+  80% { color:#7fff43e2; text-shadow:0 0 6px rgb(33, 20, 216); }
+  100% { color:#b3f794e2; text-shadow:0 0 6px rgb(128, 23, 185); }
 }
 
 #bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }

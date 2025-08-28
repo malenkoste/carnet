@@ -242,8 +242,25 @@ const artworkManager={
  this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); }};
 
 function isInContactUI(target){
-	const ids=['contact-button','contact-popover','contact-form-popover','open-contact-form','contact-form','contact-form-status','close-contact-form','watch-button','watch-popover','watch-video-button'];
-	for(const id of ids){ const el=document.getElementById(id); if(el && (target===el || (el.contains && el.contains(target)))) return true; }
+	// Treat popover containers as active only when visible to avoid blocking clicks after close
+	const entries=[
+		{ id:'contact-button', always:true },
+		{ id:'watch-button', always:true },
+		{ id:'open-contact-form', always:true },
+		{ id:'watch-video-button', always:true },
+		{ id:'contact-popover', visible:true },
+		{ id:'contact-form-popover', visible:true },
+		{ id:'watch-popover', visible:true },
+		{ id:'contact-form', visible:true },
+		{ id:'contact-form-status', visible:true },
+		{ id:'close-contact-form', visible:true },
+	];
+	for(const e of entries){
+		const el=document.getElementById(e.id);
+		if(!el) continue;
+		if(e.visible && !(el.offsetParent!==null || el.style.display==='block')) continue; // skip hidden
+		if(target===el || (el.contains && el.contains(target))) return true;
+	}
 	return false;
 }
 function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{
@@ -285,7 +302,14 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	const pop=document.getElementById('contact-popover');
 	if(!btn||!pop) return;
 	const mobileOverlay=document.getElementById('mobile-touch-area');
-		function hide(){ pop.style.display='none'; btn.setAttribute('aria-expanded','false'); }
+		function hide(){ 
+			pop.style.display='none'; 
+			btn.setAttribute('aria-expanded','false'); 
+			// If focus is inside the popover, blur it so key handlers aren't blocked
+			try{ if(document.activeElement && pop.contains(document.activeElement)) document.activeElement.blur(); }catch(_){}
+			// Re-enable mobile tap overlay when closing via any path (icon toggle, Escape, or outside click)
+			if(mobileOverlay) mobileOverlay.style.display='';
+		}
 		function show(){
 			// Center popover under the current animated button position
 			const rect = btn.getBoundingClientRect();
@@ -301,7 +325,7 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		}
 	btn.addEventListener('click',e=>{ e.stopPropagation(); if(pop.style.display==='block'){ hide(); } else { show(); } });
 	// Outside tap/click closes
-	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) { hide(); if(mobileOverlay) mobileOverlay.style.display=''; } });
+	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) { hide(); } });
 	// Escape closes
 	document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
 })();
@@ -315,7 +339,12 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		const form=document.getElementById('contact-form');
 		if(!openBtn||!formPop||!form||!statusEl) return;
 		const mobileOverlay=document.getElementById('mobile-touch-area');
-		function close(){ formPop.style.display='none'; if(mobileOverlay) mobileOverlay.style.display=''; }
+		function close(){ 
+			formPop.style.display='none'; 
+			// Blur any focused control within the form so isInContactUI won't treat it as active via focus
+			try{ if(document.activeElement && formPop.contains(document.activeElement)) document.activeElement.blur(); }catch(_){}
+			if(mobileOverlay) mobileOverlay.style.display=''; 
+		}
 		function positionFormNearIcon(){
 			try{
 				const btn=document.getElementById('contact-button');
@@ -618,6 +647,8 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) hide(); });
 	window.addEventListener('resize',positionPop); window.addEventListener('orientationchange',positionPop);
 	watchBtn.addEventListener('click',()=>{ const url=pop.getAttribute('data-vimeo'); if(url) window.open(url,'_blank','noopener'); });
+	// Escape closes (and restores mobile overlay)
+	document.addEventListener('keydown',e=>{ if(e.key==='Escape' && pop.style.display==='block'){ hide(); } });
 })();
 
 // Landscape overlay controller: pause all animations/audio in mobile landscape
