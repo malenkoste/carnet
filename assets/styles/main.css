@@ -246,3 +246,10 @@ body.landscape-paused #custom-cursor { animation-play-state: paused !important; 
   #artwork-meta{bottom:calc(34px + env(safe-area-inset-bottom));}
   #artwork-media{max-height:calc(100vh - var(--text-zone) * 0.65 - env(safe-area-inset-bottom));}
 }
+
+/* Temporarily disable specific bouncing icons (easy to re-enable by removing this block) */
+/* fun-bouncer (extra visual icon) and prayerbeads (watch-button) */
+#fun-bouncer,
+#watch-button {
+  display: none !important;
+}
