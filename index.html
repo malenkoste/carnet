@@ -15,13 +15,18 @@
     </video>
   </div>
 
+  <!-- Background slideshow (behind all content) -->
+  <div id="background-slideshow" aria-hidden="true">
+    <div class="bg-frame" data-frame="0"></div>
+    <div class="bg-frame" data-frame="1"></div>
+  </div>
+
   <div id="portfolio-content" style="display:none;">
     <div id="mobile-touch-area"></div>
     <div id="artwork-display">
       <img id="artwork-media" src="" alt="" style="opacity:0;" />
     </div>
-    <div id="artwork-title"></div>
-  <div id="artwork-meta"></div>
+    
     
     <!-- Contact icon button and popover -->
     <button id="contact-button" aria-label="Show contact info" aria-controls="contact-popover" aria-expanded="false">
@@ -75,6 +80,8 @@
 
   <!-- Animated custom cursor element (hidden on touch devices) -->
   <div id="custom-cursor" aria-hidden="true"></div>
+  <!-- Cursor-follow overlay for title + meta (desktop only) -->
+  <div id="cursor-overlay" aria-hidden="true"></div>
 
   <!-- Landscape lock overlay (shown on mobile landscape; pauses app) -->
   <div id="landscape-lock" aria-hidden="true">

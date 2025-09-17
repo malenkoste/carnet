@@ -1,4 +1,11 @@
 // Direct-entry portfolio version (no Unity). Uses transition video as loader until first artwork is ready.
+// Overlay gating: only allow after loader finished AND first artwork displayed
+window.overlayEnabled = false;
+window.firstArtworkReady = false;
+window.loaderDone = false;
+function tryEnableOverlay(){
+	if(window.firstArtworkReady && window.loaderDone){ window.overlayEnabled = true; }
+}
 
 let currentArtworkName='';
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints>2) || window.innerWidth<=768;
@@ -30,26 +37,74 @@ function initializeAllAudio(){audioSystem.init(); audioSystem.startBackgroundMus
 ['click','keydown','touchstart'].forEach(evt=>document.addEventListener(evt,initializeAllAudio,{once:true}));
 
 const titleManager={getTitleForArtwork(i,record){return record?.title || `ARTWORK ${i}`;},getMeta(record){return record?.meta||'';}};
-const artworkTitle={titleEl:null,metaEl:null,init(){this.titleEl=document.getElementById('artwork-title');this.metaEl=document.getElementById('artwork-meta');},update(record){if(!record)return; if(this.titleEl){
-	// Title text
-	this.titleEl.textContent=titleManager.getTitleForArtwork(record.index,record);
-	// Optional full video link (only for entries with fullVideoUrl)
-	if(record.fullVideoUrl){
-		const br=document.createElement('br');
-		const a=document.createElement('a');
-		a.href=record.fullVideoUrl; a.target='_blank'; a.rel='noopener'; a.textContent=record.fullVideoLabel||'Full video';
-		a.style.fontSize='0.6em'; a.style.letterSpacing='2px'; a.style.marginLeft='6px'; a.style.textDecoration='underline';
-		// Wrap existing title and link in a container for layout without altering desktop CSS drastically
-		const wrapper=document.createElement('span'); wrapper.textContent='';
-		// Rebuild titleEl content
-		const titleText=document.createElement('span'); titleText.textContent=titleManager.getTitleForArtwork(record.index,record);
-		this.titleEl.textContent='';
-		this.titleEl.appendChild(titleText);
-		this.titleEl.appendChild(br);
-		this.titleEl.appendChild(a);
+// Cursor overlay controller for showing title/meta near the cursor when over the artwork area
+const cursorOverlay=(function(){
+	let el=null; let active=false; let latest={ title:'', meta:'' }; let lastPos={x:innerWidth/2,y:innerHeight/2};
+	let hideTimer=null;
+	function ensure(){ if(!el) el=document.getElementById('cursor-overlay'); return el; }
+	function setContent(title, meta){ latest.title=title||''; latest.meta=meta||''; const o=ensure(); if(!o) return; o.innerHTML=`<span class="title">${latest.title}</span><span class="meta">${latest.meta}</span>`; }
+	function visible(v){ const o=ensure(); if(!o) return; o.style.opacity = v ? '1' : '0'; o.style.display = v ? 'block' : 'none'; }
+	function show(){ if(!window.overlayEnabled) return; const o=ensure(); if(!o) return; active=true; o.style.transform='translate3d(-9999px,-9999px,0)'; visible(true); resetAutoHide(); }
+	function hide(){ const o=ensure(); if(!o) return; active=false; clearTimeout(hideTimer); hideTimer=null; visible(false); }
+	function resetAutoHide(){ clearTimeout(hideTimer); hideTimer=setTimeout(()=>{ hide(); }, 2000); }
+	function move(x,y){
+		lastPos={x,y}; const o=ensure(); if(!o||!active) return;
+		const pad=14; const ow=o.offsetWidth, oh=o.offsetHeight; const maxX=window.innerWidth - ow - pad; const maxY=window.innerHeight - oh - pad;
+		// Always place to the right of the cursor by default; flip to left if no space
+		const gapX = 120; // horizontal gap from pointer (tripled)
+		const gapY = 54;  // vertical nudge below pointer (tripled)
+		let placedRight = true;
+		let nx = x + gapX;
+		if(nx > maxX){ placedRight = false; nx = Math.max(pad, x - ow - gapX); }
+		let ny = Math.min(y + gapY, maxY);
+		// Collision with screen boundaries is handled by clamping above; avoid bouncy icons too
+		try{
+			const blockers=[ 'contact-button','fun-bouncer','watch-button','groovy-bouncer','poppies-bouncer' ]
+				.map(id=>document.getElementById(id)).filter(Boolean).map(el=>el.getBoundingClientRect());
+			const r={ left:nx, top:ny, right:nx+o.offsetWidth, bottom:ny+o.offsetHeight };
+			const inflate=10; // slightly larger buffer so overlay collider stays off icons
+			let adjusted=true; let iter=0; const limit=6;
+			while(adjusted && iter++<limit){
+				adjusted=false;
+				for(const b of blockers){
+					const bx=b.left-inflate, by=b.top-inflate, br=b.right+inflate, bb=b.bottom+inflate;
+					const overlap = !(r.right<bx || r.left>br || r.bottom<by || r.top>bb);
+					if(overlap){
+						// Push minimally away along smallest penetration axis
+						const dxLeft = r.right - bx;  // move left by this
+						const dxRight = br - r.left;  // move right by this
+						const dyUp = r.bottom - by;   // move up by this
+						const dyDown = bb - r.top;    // move down by this
+						const min = Math.min(dxLeft, dxRight, dyUp, dyDown);
+						if(min===dxLeft){ nx -= dxLeft; r.left-=dxLeft; r.right-=dxLeft; }
+						else if(min===dxRight){ nx += dxRight; r.left+=dxRight; r.right+=dxRight; }
+						else if(min===dyUp){ ny -= dyUp; r.top-=dyUp; r.bottom-=dyUp; }
+						else { ny += dyDown; r.top+=dyDown; r.bottom+=dyDown; }
+						// Re-clamp to viewport
+						nx=Math.max(pad, Math.min(nx, maxX)); ny=Math.max(pad, Math.min(ny, maxY));
+						adjusted=true;
+					}
+				}
+			}
+		}catch(e){}
+		// Final guarantee: keep the pointer outside of the overlay rect so clicks are never occluded by collider
+		try{
+			const w=ow||o.offsetWidth, h=oh||o.offsetHeight;
+			// If overlay still covers the pointer, snap to the side away from the cursor
+			if(x>=nx && x<=nx+w && y>=ny && y<=ny+h){
+				if(placedRight){ nx = Math.max(pad, x + gapX); }
+				else { nx = Math.max(pad, Math.min(maxX, x - w - gapX)); }
+			}
+			// Re-clamp after exclusion
+			nx=Math.max(pad, Math.min(nx, maxX)); ny=Math.max(pad, Math.min(ny, maxY));
+		}catch(_){ }
+		o.style.transform=`translate3d(${nx}px,${ny}px,0)`; resetAutoHide();
 	}
- }
- if(this.metaEl){const m=titleManager.getMeta(record); if(m){this.metaEl.textContent=m; this.metaEl.classList.remove('hidden');} else {this.metaEl.textContent=''; this.metaEl.classList.add('hidden');}}}};
+	function placeNow(){ move(lastPos.x, lastPos.y); }
+	return { setContent, show, hide, move, placeNow };
+})();
+// No-op holder to satisfy existing calls; replaced with overlay logic
+const artworkTitle={init(){},update(record){ if(!record) return; const title=titleManager.getTitleForArtwork(record.index,record); const meta=titleManager.getMeta(record); cursorOverlay.setContent(title, meta); }};
 
 const mobileTouch={touchArea:null,init(){this.touchArea=document.getElementById('mobile-touch-area');if(this.touchArea&&isMobile){this.setupTouchEvents();}},setupTouchEvents(){let touchStartTime=0;this.touchArea.addEventListener('touchstart',e=>{e.preventDefault();touchStartTime=Date.now();},{passive:false});this.touchArea.addEventListener('touchend',e=>{e.preventDefault();if(window.landscapeController && window.landscapeController.isPaused) return; if(Date.now()-touchStartTime<1000){audioSystem.playClickSound();setTimeout(()=>artworkManager.showNextArtwork(),20);}},{passive:false});['contextmenu','touchmove'].forEach(evt=>this.touchArea.addEventListener(evt,e=>{e.preventDefault();},{passive:false}));}};
 
@@ -111,6 +166,7 @@ const artworkManager={
 		const display=document.getElementById('artwork-display');
 		while(display.firstChild) display.removeChild(display.firstChild);
 		display.appendChild(preloadedEl);
+		// Mosaic removed
 		requestAnimationFrame(()=>{ void preloadedEl.offsetWidth; preloadedEl.classList.add('wavy-in'); if(mediaFile.type==='video'){ try{preloadedEl.play().catch(()=>{});}catch(e){} } });
 		this.currentIndex=0;
 		currentArtworkName=mediaFile.name;
@@ -119,6 +175,8 @@ const artworkManager={
 		this.initialArtworkInserted=true;
 		this.initialArtworkDisplayed=true;
 		this.attemptReady();
+		// Mark first artwork ready; overlay will enable once loader completes
+		try{ window.firstArtworkReady = true; tryEnableOverlay(); }catch(_){ }
 	},
 	async showNextArtwork(){
 		if(this.paused || this.isLoading || this.mediaFiles.length===0) return; this.isLoading=true;
@@ -148,6 +206,7 @@ const artworkManager={
 		const display=document.getElementById('artwork-display');
 		if(outgoing&&outgoing.parentNode) outgoing.parentNode.removeChild(outgoing);
 		display.appendChild(preloadedEl);
+		// Mosaic removed
 		requestAnimationFrame(()=>{
 			void preloadedEl.offsetWidth; // force reflow
 			preloadedEl.classList.add('wavy-in');
@@ -192,6 +251,7 @@ const artworkManager={
 		const display=document.getElementById('artwork-display');
 		if(outgoing&&outgoing.parentNode) outgoing.parentNode.removeChild(outgoing);
 		display.appendChild(preloadedEl);
+		// Mosaic removed
 		requestAnimationFrame(()=>{
 			void preloadedEl.offsetWidth;
 			preloadedEl.classList.add('wavy-in');
@@ -239,7 +299,8 @@ const artworkManager={
 
  const portfolioLoader={isLoading:true,ready:false,minShowMs:4000,startTime:0,show(){const el=document.getElementById('portfolio-loading');const vid=document.getElementById('portfolio-loading-video'); if(el){el.style.display='flex'; el.classList.remove('fade-out');}
  if(vid){vid.playbackRate=0.66; vid.currentTime=0; const ensure=()=>{const p=vid.play(); if(p) p.catch(()=>setTimeout(ensure,400));}; ensure(); vid.addEventListener('stalled',ensure); vid.addEventListener('pause',()=>{ if(!portfolioLoader.ready && !vid.dataset.landscapePaused) ensure(); });}
- this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); }};
+ this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); try{ window.loaderDone = true; tryEnableOverlay(); }catch(_){ } }};
+ 
 
 function isInContactUI(target){
 	// Treat popover containers as active only when visible to avoid blocking clicks after close
@@ -269,6 +330,30 @@ function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById
 		e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork();
 	}); }
  mobileTouch.init(); }
+ // Overlay behavior
+ (function(){
+	 const fine = window.matchMedia ? window.matchMedia('(pointer: fine)').matches : !isMobile;
+	 const coarse = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : isMobile;
+	 // Desktop: show anywhere on pointer move (global), hide after 2s via controller
+	 if(fine){
+		 window.addEventListener('pointermove', (e)=>{ if(!window.overlayEnabled) return; cursorOverlay.show(); cursorOverlay.move(e.clientX, e.clientY); }, { passive:true });
+	 }
+	 // Mobile/touch unchanged: tap to show anywhere
+	 if(coarse){
+		 const tapHandler = (e)=>{
+			 if(!window.overlayEnabled) return;
+			 try{
+				 const t = e.target; if(isInContactUI && isInContactUI(t)) return;
+				 const touch = e.changedTouches ? e.changedTouches[0] : null;
+				 const x = touch ? touch.clientX : (e.clientX||0);
+				 const y = touch ? touch.clientY : (e.clientY||0);
+				 cursorOverlay.show(); cursorOverlay.move(x, y);
+			 }catch(_){ }
+		 };
+		 window.addEventListener('touchend', tapHandler, { passive:false });
+		 window.addEventListener('pointerup', (e)=>{ if(e.pointerType==='touch') tapHandler(e); }, { passive:true });
+	 }
+ })();
 
 document.addEventListener('keydown',e=>{const pc=document.getElementById('portfolio-content'); if(!pc||pc.style.display!=='block') return; 
 	if(window.landscapeController && window.landscapeController.isPaused) return;
@@ -276,6 +361,62 @@ document.addEventListener('keydown',e=>{const pc=document.getElementById('portfo
 	if(e.key==='ArrowRight'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showPreviousArtwork(); }});
 
 window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
+
+// Background slideshow with 6s crossfade
+(function(){
+	const root = document.getElementById('background-slideshow'); if(!root) return;
+	const frames = Array.from(root.querySelectorAll('.bg-frame'));
+	if(frames.length<2) return;
+	// Build a broad candidate list (Background/background + 1..50, multiple extensions)
+	const bases = ['Background','background'];
+	const exts = ['png','jpg','jpeg','webp','avif'];
+	const candidates = new Set();
+	for(const base of bases){ for(const ext of exts){ candidates.add(`assets/images/${base}.${ext}`); } }
+	for(let i=1;i<=50;i++){
+		for(const base of bases){ for(const ext of exts){ candidates.add(`assets/images/${base}${i}.${ext}`); } }
+	}
+	// Probe which images exist by attempting to load them
+	function preload(url){ return new Promise(resolve=>{ const i=new Image(); i.onload=()=>resolve(url); i.onerror=()=>resolve(null); i.src=url; }); }
+	function naturalKey(s){
+		// Extract base and first number; fallback to string
+		const m = s.match(/([^\/]*?)(\d+)?\.(png|jpg|jpeg|webp|avif)$/i);
+		if(!m) return { name:s.toLowerCase(), num:Infinity };
+		return { name:m[1].toLowerCase(), num: m[2] ? parseInt(m[2],10) : 0 };
+	}
+	(async function(){
+		const probed = await Promise.all(Array.from(candidates).map(preload));
+		let existing = probed.filter(Boolean);
+		if(!existing.length){
+			// Fallback to the body background image if no separate assets found
+			const bg = getComputedStyle(document.body).backgroundImage;
+			const urlMatch = bg && bg.match(/url\("?(.*?)"?\)/);
+			if(urlMatch && urlMatch[1]) existing.push(urlMatch[1]);
+		}
+		if(existing.length===0) return;
+		// Natural sort by name and number (e.g., Background2 before Background10)
+		existing.sort((a,b)=>{ const ka=naturalKey(a), kb=naturalKey(b); return ka.name===kb.name ? ka.num - kb.num : (ka.name<kb.name?-1:1); });
+		// Preload into CSS backgrounds to ensure caching
+		const preloadCss = existing.map(u=>new Promise(res=>{ const i=new Image(); i.onload=i.onerror=()=>res(); i.src=u; }));
+		Promise.allSettled(preloadCss).then(()=>{
+			let idx=0; let active=0;
+			function setFrame(el,url){ el.style.backgroundImage=`url('${url}')`; }
+			// Initialize first frame
+			setFrame(frames[active], existing[idx]); frames[active].classList.add('active');
+			if(existing.length<2) return; // only one image, no slideshow
+			function step(){
+				idx = (idx+1)%existing.length;
+				const next = 1 - active; // flip between 0 and 1
+				setFrame(frames[next], existing[idx]);
+				// Crossfade by toggling classes
+				frames[next].classList.add('active');
+				frames[active].classList.remove('active');
+				// swap active index
+				active = next;
+			}
+			setInterval(step, 8000);
+		});
+	})();
+})();
 
 // Block mobile zoom (pinch + double-tap) to avoid breaking tap targets on iOS
 (function(){
@@ -323,7 +464,11 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 			btn.setAttribute('aria-expanded','true');
 			if(mobileOverlay) mobileOverlay.style.display='none';
 		}
-	btn.addEventListener('click',e=>{ e.stopPropagation(); if(pop.style.display==='block'){ hide(); } else { show(); } });
+	// Clicking the contact icon toggles the SEND MESSAGE popover (re-enabled)
+	btn.addEventListener('click',e=>{ 
+		e.stopPropagation(); 
+		if(pop.style.display==='block'){ hide(); } else { show(); }
+	});
 	// Outside tap/click closes
 	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) { hide(); } });
 	// Escape closes
@@ -337,42 +482,49 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		const closeBtn=document.getElementById('close-contact-form');
 		const statusEl=document.getElementById('contact-form-status');
 		const form=document.getElementById('contact-form');
-		if(!openBtn||!formPop||!form||!statusEl) return;
+		if(!formPop||!form||!statusEl) return;
 		const mobileOverlay=document.getElementById('mobile-touch-area');
-		function close(){ 
+			function close(){ 
 			formPop.style.display='none'; 
 			// Blur any focused control within the form so isInContactUI won't treat it as active via focus
 			try{ if(document.activeElement && formPop.contains(document.activeElement)) document.activeElement.blur(); }catch(_){}
 			if(mobileOverlay) mobileOverlay.style.display=''; 
 		}
-		function positionFormNearIcon(){
-			try{
-				const btn=document.getElementById('contact-button');
-				if(!btn || formPop.style.display!=='block') return;
-				const rect=btn.getBoundingClientRect();
-				const margin=10, gap=8;
-				let popW=formPop.offsetWidth || Math.min(window.innerWidth*0.9, 320);
-				let popH=formPop.offsetHeight || 220;
-				let left = rect.left + rect.width/2 - popW/2;
-				const spaceBelow = window.innerHeight - rect.bottom - gap;
-				const spaceAbove = rect.top - gap;
-				let top = (spaceBelow >= popH || spaceBelow >= spaceAbove)
-					? (rect.bottom + gap)
-					: (rect.top - gap - popH);
-				left = Math.max(margin, Math.min(window.innerWidth - popW - margin, left));
-				top = Math.max(margin, Math.min(window.innerHeight - popH - margin, top));
-				formPop.style.left = left + 'px';
-				formPop.style.top = top + 'px';
-				formPop.style.transform='none';
-			}catch(e){}
-		}
-		function open(){ 
-			formPop.style.display='block'; 
-			statusEl.textContent=''; 
-			if(mobileOverlay) mobileOverlay.style.display='none';
-			positionFormNearIcon();
-		}
-		openBtn.addEventListener('click',e=>{ e.stopPropagation(); open(); });
+			function positionFormNearIcon(){
+				try{
+					const btn=document.getElementById('contact-button');
+					if(!btn || formPop.style.display!=='block') return;
+					const rect=btn.getBoundingClientRect();
+					const margin=10, gap=8;
+					let popW=formPop.offsetWidth || Math.min(window.innerWidth*0.9, 320);
+					let popH=formPop.offsetHeight || 220;
+					let left = rect.left + rect.width/2 - popW/2;
+					const spaceBelow = window.innerHeight - rect.bottom - gap;
+					const spaceAbove = rect.top - gap;
+					let top = (spaceBelow >= popH || spaceBelow >= spaceAbove)
+						? (rect.bottom + gap)
+						: (rect.top - gap - popH);
+					left = Math.max(margin, Math.min(window.innerWidth - popW - margin, left));
+					top = Math.max(margin, Math.min(window.innerHeight - popH - margin, top));
+					formPop.style.left = left + 'px';
+					formPop.style.top = top + 'px';
+					formPop.style.transform='none';
+				}catch(e){}
+			}
+			function open(){ 
+				formPop.style.display='block'; 
+				statusEl.textContent=''; 
+				if(mobileOverlay) mobileOverlay.style.display='none';
+				positionFormNearIcon();
+			}
+			// Expose controller for external triggers (contact icon)
+			window.contactFormController = {
+				open,
+				close,
+				toggle(){ if(formPop.style.display==='block') close(); else open(); },
+				isOpen(){ return formPop.style.display==='block'; }
+			};
+	openBtn && openBtn.addEventListener('click',e=>{ e.stopPropagation(); open(); });
 		closeBtn&&closeBtn.addEventListener('click',e=>{ e.stopPropagation(); close(); });
 		document.addEventListener('pointerdown',e=>{ if(formPop.style.display==='block' && !formPop.contains(e.target) && e.target!==openBtn) close(); });
 		window.addEventListener('resize',positionFormNearIcon);
@@ -380,24 +532,41 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
 		form.addEventListener('submit',async e=>{
 			e.preventDefault();
+			const submitBtn = form.querySelector('button[type="submit"]');
+			if(submitBtn){ submitBtn.disabled=true; submitBtn.setAttribute('aria-busy','true'); }
 			statusEl.textContent='Sending…';
 			const fd=new FormData(form);
 			const endpoint=formPop.getAttribute('data-endpoint');
-			if(endpoint){
+			const emailFallback='ezrasilva@proton.me';
+			const message=(fd.get('message')||'').toString().trim();
+			if(!message){ statusEl.textContent='Please write a message.'; const ta=form.querySelector('textarea[name="message"]'); ta&&ta.focus(); if(submitBtn){ submitBtn.disabled=false; submitBtn.removeAttribute('aria-busy'); } return; }
+			async function sendViaFormspree(){
+				const controller = new AbortController();
+				const timer = setTimeout(()=>controller.abort(), 12000);
 				try{
 					fd.append('_subject','Portfolio message');
 					fd.append('_origin', window.location.href);
-					const res=await fetch(endpoint,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
-					if(res.ok){ statusEl.textContent='Sent! Thank you.'; form.reset(); } else { statusEl.textContent='Failed to send. Please try again.'; }
-				}catch(err){ statusEl.textContent='Network error. Please try later.'; }
-			} else {
-				// Fallback: open mailto with subject/body
-				const email='ezrasilva@proton.me';
+					const res=await fetch(endpoint,{method:'POST',body:fd,headers:{'Accept':'application/json'},signal:controller.signal});
+					clearTimeout(timer);
+					return res.ok;
+				}catch(_){ clearTimeout(timer); return false; }
+			}
+			function sendViaMailto(){
 				const subject=encodeURIComponent('Portfolio message');
-				const body=encodeURIComponent(`${fd.get('message') || ''}`);
-				window.location.href=`mailto:${email}?subject=${subject}&body=${body}`;
+				const body=encodeURIComponent(`${message}\n\nFrom: ${window.location.href}`);
+				const href=`mailto:${emailFallback}?subject=${subject}&body=${body}`;
+				// Create a temporary anchor to better trigger default mail client
+				const a=document.createElement('a'); a.href=href; a.style.display='none'; document.body.appendChild(a);
+				try{ a.click(); }catch(_){ try{ window.location.href=href; }catch(__){} }
+				setTimeout(()=>{ try{ document.body.removeChild(a); }catch(_){} }, 100);
 				statusEl.textContent='Opening mail client…';
 			}
+			let ok=false;
+			const isLocal = location.protocol === 'file:';
+			if(endpoint && !isLocal){ ok = await sendViaFormspree(); }
+			if(ok){ statusEl.textContent='Sent! Thank you.'; form.reset(); setTimeout(()=>{ try{ window.contactFormController && window.contactFormController.close(); }catch(_){} }, 600); }
+			else { statusEl.textContent='Could not send via form. Using email client…'; sendViaMailto(); setTimeout(()=>{ try{ window.contactFormController && window.contactFormController.close(); }catch(_){} }, 1200); }
+			if(submitBtn){ submitBtn.disabled=false; submitBtn.removeAttribute('aria-busy'); }
 		});
 	})();
 
@@ -412,6 +581,19 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 	function rnd(min,max){ return min + Math.random()*(max-min); }
 	function rndSign(){ return Math.random()>0.5?1:-1; }
+
+	// Helper: get overlay rect if overlay text is visible
+	function getOverlayRect(){
+		try{
+			if(!window.overlayEnabled) return null;
+			const el = document.getElementById('cursor-overlay');
+			if(!el) return null;
+			const cs = getComputedStyle(el);
+			if(cs.display === 'none' || parseFloat(cs.opacity||'0') <= 0.01) return null;
+			const r = el.getBoundingClientRect();
+			return { l:r.left, t:r.top, r:r.right, b:r.bottom };
+		}catch(_){ return null; }
+	}
 
 	// Build sprite state
 	const sprites = [];
@@ -490,8 +672,15 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		sprite.el.addEventListener('click', vanish);
 		sprite.el.addEventListener('touchend', vanish, { passive:false });
 	}
-	// Groovy vanishes like fun-bouncer
-	wireVanish(groovySprite, 2600);
+	// Groovy: open Instagram on click/tap instead of vanishing
+	if(groovySprite){
+		const openInsta = (e)=>{
+			if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
+			window.open('https://www.instagram.com/malenkoste', '_blank', 'noopener');
+		};
+		groovySprite.el.addEventListener('click', openInsta);
+		groovySprite.el.addEventListener('touchend', openInsta, { passive:false });
+	}
 
 	// Poppies acts as a toggle for all icons pause/resume
 	if(poppiesSprite){
@@ -515,6 +704,8 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		const dt = (now - last) / 1000; last = now;
 		if(paused){ rafId = requestAnimationFrame(step); return; }
 		const { w:vw, h:vh } = getViewport();
+		// Sample overlay rect once per frame for collision
+		const overlayR = getOverlayRect();
 		for(const s of sprites){
 			if(!s || !s.active) continue;
 			// tiny random jitter so paths diverge
@@ -524,12 +715,33 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 			const tdt = dt * s.timeScale;
 			s.x += s.vx * tdt; s.y += s.vy * tdt;
 			// size is cached; updated on resize/reclamp and on respawn
-			// collisions
+			// collisions with viewport edges
 			let hit=false;
 			if(s.x <= 0){ s.x=0; s.vx=Math.abs(s.vx); hit=true; }
 			if(s.x + s.w >= vw){ s.x=Math.max(0, vw - s.w); s.vx=-Math.abs(s.vx); hit=true; }
 			if(s.y <= 0){ s.y=0; s.vy=Math.abs(s.vy); hit=true; }
 			if(s.y + s.h >= vh){ s.y=Math.max(0, vh - s.h); s.vy=-Math.abs(s.vy); hit=true; }
+			// collision with cursor overlay text (if visible)
+			if(overlayR){
+				const rL = s.x, rT = s.y, rR = s.x + s.w, rB = s.y + s.h;
+				const overlap = !(rR < overlayR.l || rL > overlayR.r || rB < overlayR.t || rT > overlayR.b);
+				if(overlap){
+					const dxLeft = rR - overlayR.l;   // move left by this
+					const dxRight = overlayR.r - rL;   // move right by this
+					const dyUp = rB - overlayR.t;      // move up by this
+					const dyDown = overlayR.b - rT;    // move down by this
+					// pick minimal penetration axis
+					const minPen = Math.min(dxLeft, dxRight, dyUp, dyDown);
+					const eps = 1;
+					if(minPen === dxLeft){ s.x -= (dxLeft + eps); s.vx = -Math.abs(s.vx); hit = true; }
+					else if(minPen === dxRight){ s.x += (dxRight + eps); s.vx = Math.abs(s.vx); hit = true; }
+					else if(minPen === dyUp){ s.y -= (dyUp + eps); s.vy = -Math.abs(s.vy); hit = true; }
+					else { s.y += (dyDown + eps); s.vy = Math.abs(s.vy); hit = true; }
+					// Re-clamp to viewport after resolution
+					s.x = clamp(s.x, 0, Math.max(0, vw - s.w));
+					s.y = clamp(s.y, 0, Math.max(0, vh - s.h));
+				}
+			}
 			s.el.style.transform = `translate3d(${s.x}px, ${s.y}px, 0)`;
 			if(hit && s.wrap){ s.wrap.classList.add('squash'); setTimeout(()=>s.wrap.classList.remove('squash'), 160); }
 		}
@@ -555,6 +767,8 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		has(reason){ return pauseReasons.has(reason); }
 	};
 })();
+
+// Mosaic renderer removed
 
 // Ensure background fills mobile screens fully by forcing cover on resize/orientation
 (function(){
@@ -593,7 +807,7 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 			document.body.style.backgroundSize='cover';
 			document.body.style.backgroundRepeat='no-repeat';
 			const pc=document.getElementById('portfolio-content');
-			if(pc){ pc.style.backgroundImage = getComputedStyle(document.body).backgroundImage; pc.style.backgroundSize='cover'; pc.style.backgroundRepeat='no-repeat'; pc.style.backgroundPosition='center top'; pc.style.backgroundAttachment='scroll'; pc.style.backgroundColor='transparent'; }
+			if(pc){ pc.style.backgroundImage = ''; pc.style.backgroundSize=''; pc.style.backgroundRepeat=''; pc.style.backgroundPosition=''; pc.style.backgroundAttachment=''; pc.style.backgroundColor='transparent'; }
 		} else {
 			const pc=document.getElementById('portfolio-content');
 			if(pc){ pc.style.backgroundImage=''; pc.style.backgroundSize=''; pc.style.backgroundRepeat=''; pc.style.backgroundPosition=''; pc.style.backgroundAttachment=''; }

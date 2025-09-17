@@ -6,6 +6,10 @@ html, body { min-height: 100%; }
 
 body { margin:0; overflow:hidden; background:#f5f1e8 url('../images/background.png') center / cover no-repeat fixed; font-family:'RAMI'; color:#fff; }
 body.cursor-hidden { cursor:none; }
+/* Background slideshow */
+#background-slideshow{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+#background-slideshow .bg-frame{ position:absolute; inset:0; background-position:center; background-repeat:no-repeat; background-size:cover; opacity:0; transition: opacity 8s ease; }
+#background-slideshow .bg-frame.active{ opacity:1; }
 
 /* Prevent iOS double-tap to zoom and odd gesture magnification on controls */
 html, body { touch-action: manipulation; }
@@ -20,15 +24,7 @@ button, a, input, textarea, select { touch-action: manipulation; }
 /* Mobile background behavior for smoother scrolling */
 @media (max-width:768px){
   body{ background-attachment: scroll; background-position: center top; background-size: cover; background-repeat: no-repeat; }
-  /* Ensure background fills viewport even with dynamic browser chrome */
-  body::before{
-    content:'';
-    position:fixed;
-    inset:0;
-    z-index:-1;
-    background: inherit;
-    pointer-events:none;
-  }
+  /* Keep slideshow visible; remove body pseudo-element duplication */
 }
 
 /* Animated custom cursor (8 frames 64x64) */
@@ -36,6 +32,15 @@ button, a, input, textarea, select { touch-action: manipulation; }
   background:url('../cursors/cursor1.png') center/contain no-repeat; image-rendering:crisp-edges; mix-blend-mode:normal; transition:opacity .2s; }
 #custom-cursor.animating { display:block; }
 @media (prefers-reduced-motion: reduce){ #custom-cursor { animation:none; } }
+
+/* Cursor-follow overlay for artwork title/meta (desktop only) */
+#cursor-overlay{ position:fixed; left:0; top:0; transform:translate3d(-9999px,-9999px,0); z-index:10002; 
+  pointer-events:none; font-family:'RAMI',serif; font-size:14px; line-height:1.15; letter-spacing:1px; color:#fff;
+  /* Transparent background (back to clean floating text) */
+  background:transparent; border:none; border-radius:0; padding:0; box-shadow:none; max-width:min(48vw, 380px); transition: opacity .2s ease; }
+#cursor-overlay .title{ display:block; font-size:19.2px; letter-spacing:2px; margin-bottom:4px; animation: title-spectrum 6s linear infinite; will-change: color, text-shadow; }
+#cursor-overlay .meta{ display:block; font-family:'GENSCO',sans-serif; font-size:12.24px; opacity:0.95; animation: title-spectrum 6s linear infinite; will-change: color, text-shadow; }
+/* Overlay can also be shown on touch via tap; don't force-hide it */
 
 /* Removed custom image cursor */
 
@@ -48,6 +53,8 @@ button, a, input, textarea, select { touch-action: manipulation; }
 #portfolio-content { display:none; position:absolute; inset:0; width:100vw; height:100vh; z-index:10; background:transparent; background-size:cover; }
 #artwork-display { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; z-index:20; }
 #artwork-media { max-width:60vw; max-height:70vh; object-fit:contain; transition:opacity .3s ease; will-change:opacity,transform; }
+
+/* Removed mosaic background layer */
 
 /* Glitch vanish / spawn (performance-friendly: opacity + transform only) */
 @keyframes glitch-out {
@@ -96,12 +103,13 @@ button, a, input, textarea, select { touch-action: manipulation; }
 }
 
 @keyframes title-spectrum {
-  0% { color:#9dfc71e2; text-shadow:0 0 6px rgb(10, 108, 150); }
-  20% { color:#85fc4fe2; text-shadow:0 0 7px rgba(19, 158, 107, 0.761); }
-  40% { color:#96fb67e2; text-shadow:0 0 6px rgb(28, 94, 207); }
-  60% { color:#c6ffabe2; text-shadow:0 0 8px rgb(16, 16, 231); }
-  80% { color:#7fff43e2; text-shadow:0 0 6px rgb(33, 20, 216); }
-  100% { color:#b3f794e2; text-shadow:0 0 6px rgb(128, 23, 185); }
+  /* Updated: include lime green and black; remove yellow; cooler cycle with lime, cyan, blue, violet */
+  0%   { color:#000000; text-shadow:0 0 6px rgba(0,0,0,0.6); }
+  20%  { color:#32ff4f; text-shadow:0 0 7px rgba(50,255,79,0.50); }   /* lime green */
+  40%  { color:#4dd2ff; text-shadow:0 0 7px rgba(77,210,255,0.60); }   /* cyan */
+  60%  { color:#475dcc; text-shadow:0 0 7px rgba(102,128,255,0.60); }  /* blue */
+  80%  { color:#8c4ee8; text-shadow:0 0 7px rgba(140,102,255,0.60); }  /* violet */
+  100% { color:#000000; text-shadow:0 0 6px rgba(0,0,0,0.6); }
 }
 
 #bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }
@@ -246,6 +254,9 @@ body.landscape-paused #custom-cursor { animation-play-state: paused !important; 
   #artwork-meta{bottom:calc(34px + env(safe-area-inset-bottom));}
   #artwork-media{max-height:calc(100vh - var(--text-zone) * 0.65 - env(safe-area-inset-bottom));}
 }
+
+/* Hide artwork title and description (meta) entirely */
+#artwork-title, #artwork-meta { display: none !important; }
 
 /* Temporarily disable specific bouncing icons (easy to re-enable by removing this block) */
 /* fun-bouncer (extra visual icon) and prayerbeads (watch-button) */
