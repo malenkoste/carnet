@@ -6,6 +6,9 @@
   <title>Livre d'Ezra – Portfolio</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png"/>
   <link rel="stylesheet" href="assets/styles/main.css"/>
+  <!-- 3D model viewer (web components) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <script nomodule src="https://unpkg.com/@google/model-viewer/dist/model-viewer-legacy.js"></script>
 </head>
 <body>
   <!-- Transition video acts as sole loader -->
@@ -25,6 +28,13 @@
     <div id="mobile-touch-area"></div>
     <div id="artwork-display">
       <img id="artwork-media" src="" alt="" style="opacity:0;" />
+    </div>
+    <!-- Model rotation controls (shown only for 3D models) -->
+    <div id="model-controls" aria-hidden="true" style="display:none;">
+      <button type="button" id="model-rot-up" aria-label="Rotate up">▲</button>
+      <button type="button" id="model-rot-down" aria-label="Rotate down">▼</button>
+      <button type="button" id="model-rot-left" aria-label="Rotate left">◀</button>
+      <button type="button" id="model-rot-right" aria-label="Rotate right">▶</button>
     </div>
     
     

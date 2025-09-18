@@ -1,5 +1,5 @@
 [
-  { "file": "artwork1.png", "title": "BAAL", "alt": "Artwork 1: BAAL, THE POET", "meta": "Digital drawing" },
+  { "file": "artwork1.glb", "title": "BAAL", "alt": "Artwork 1: BAAL, THE POET", "meta": "Digital drawing" },
   { "file": "artwork2.mp4", "title": "BOTTOM", "alt": "Video artwork 2: BOTTOM", "meta": "Digital drawing/animation" },
   { "file": "artwork3.png", "title": "RINGER / DOORBELL", "alt": "Artwork 3: RINGER / DOORBELL", "meta": "Digital drawing" },
   { "file": "artwork4.png", "title": "JUSTINE", "alt": "Artwork 4: JUSTINE", "meta": "Digital drawing" },

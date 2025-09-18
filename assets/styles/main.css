@@ -36,8 +36,8 @@ button, a, input, textarea, select { touch-action: manipulation; }
 /* Cursor-follow overlay for artwork title/meta (desktop only) */
 #cursor-overlay{ position:fixed; left:0; top:0; transform:translate3d(-9999px,-9999px,0); z-index:10002; 
   pointer-events:none; font-family:'RAMI',serif; font-size:14px; line-height:1.15; letter-spacing:1px; color:#fff;
-  /* Transparent background (back to clean floating text) */
-  background:transparent; border:none; border-radius:0; padding:0; box-shadow:none; max-width:min(48vw, 380px); transition: opacity .2s ease; }
+  /* Discreet readable background */
+  background:rgba(0,0,0,0.45); border:none; border-radius:8px; padding:6px 8px; box-shadow:0 2px 10px rgba(0,0,0,0.25); max-width:min(48vw, 380px); transition: opacity .2s ease; }
 #cursor-overlay .title{ display:block; font-size:19.2px; letter-spacing:2px; margin-bottom:4px; animation: title-spectrum 6s linear infinite; will-change: color, text-shadow; }
 #cursor-overlay .meta{ display:block; font-family:'GENSCO',sans-serif; font-size:12.24px; opacity:0.95; animation: title-spectrum 6s linear infinite; will-change: color, text-shadow; }
 /* Overlay can also be shown on touch via tap; don't force-hide it */
@@ -53,6 +53,18 @@ button, a, input, textarea, select { touch-action: manipulation; }
 #portfolio-content { display:none; position:absolute; inset:0; width:100vw; height:100vh; z-index:10; background:transparent; background-size:cover; }
 #artwork-display { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; z-index:20; }
 #artwork-media { max-width:60vw; max-height:70vh; object-fit:contain; transition:opacity .3s ease; will-change:opacity,transform; }
+
+/* Model-viewer should occupy the same box as images/videos */
+model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height:70vh; display:block; }
+
+/* Overlay controls for model rotation */
+#model-controls{ position:fixed; inset:0; pointer-events:none; z-index:10002; }
+#model-controls button{ position:absolute; pointer-events:auto; background:rgba(0,0,0,0.5); color:#32ff4f; border:1px solid #2a8800; border-radius:8px; padding:10px 14px; font-family:'GENSCO',sans-serif; font-size:16px; }
+#model-rot-up{ top:12px; left:50%; transform:translateX(-50%); }
+#model-rot-down{ bottom:12px; left:50%; transform:translateX(-50%); }
+#model-rot-left{ left:12px; top:50%; transform:translateY(-50%); }
+#model-rot-right{ right:12px; top:50%; transform:translateY(-50%); }
+#model-controls, #model-controls * { cursor: none !important; }
 
 /* Removed mosaic background layer */
 

@@ -121,7 +121,7 @@ const artworkManager={
 			this.manifest=await res.json();
 			this.mediaFiles=this.manifest.map((m,idx)=>{
 				const ext=m.file.split('.').pop();
-				const type=['mp4','webm','mov'].includes(ext)?'video':'image';
+				const type=['mp4','webm','mov'].includes(ext)?'video':(['glb','gltf','usdz'].includes(ext)?'model':'image');
 				return { url:`assets/artwork/${m.file}`, type, name:m.file, index:idx+1, id:idx, meta:m };
 			});
 			if(this.mediaFiles.length){
@@ -141,12 +141,28 @@ const artworkManager={
 		if(el){
 			if(mediaFile.type==='image'){
 				el=el.cloneNode(true); // clone image so CSS animation restarts
-			} else {
+			} else if(mediaFile.type==='video'){
 				el.classList.remove('wavy-in','wavy-out');
+			} else if(mediaFile.type==='model'){
+				// Important: clone model-viewer so it re-mounts cleanly
+				el = el.cloneNode(true);
 			}
 		} else {
-			el=mediaFile.type==='video'?document.createElement('video'):document.createElement('img');
-			el.src=mediaFile.url;
+			if(mediaFile.type==='video'){
+				el=document.createElement('video'); el.src=mediaFile.url;
+			}else if(mediaFile.type==='model'){
+				el=document.createElement('model-viewer');
+				el.setAttribute('src', mediaFile.url);
+				// Disable native controls so we can drive rotation ourselves
+				el.removeAttribute('camera-controls');
+				el.setAttribute('interaction-prompt','none');
+				el.setAttribute('alt', mediaFile.meta?.alt || mediaFile.name);
+				el.setAttribute('exposure','1');
+				el.setAttribute('shadow-intensity','0');
+				el.setAttribute('ar-modes','webxr scene-viewer quick-look');
+			}else{
+				el=document.createElement('img'); el.src=mediaFile.url;
+			}
 		}
 		return el;
 	},
@@ -175,6 +191,8 @@ const artworkManager={
 		this.initialArtworkInserted=true;
 		this.initialArtworkDisplayed=true;
 		this.attemptReady();
+		// Show or hide model rotation controls depending on media
+		try{ const mc=document.getElementById('model-controls'); if(mc) mc.style.display = (mediaFile.type==='model') ? 'block' : 'none'; if(window.modelControls) window.modelControls.refresh(); }catch(_){ }
 		// Mark first artwork ready; overlay will enable once loader completes
 		try{ window.firstArtworkReady = true; tryEnableOverlay(); }catch(_){ }
 	},
@@ -222,6 +240,8 @@ const artworkManager={
 		this.isLoading=false;
 		if(!this.initialArtworkDisplayed) this.initialArtworkDisplayed=true;
 		this.attemptReady();
+		// Toggle model controls on change
+		try{ const mc=document.getElementById('model-controls'); if(mc) mc.style.display = (mediaFile.type==='model') ? 'block' : 'none'; if(window.modelControls) window.modelControls.refresh(); }catch(_){ }
 	},
 	async showPreviousArtwork(){
 		if(this.paused || this.isLoading || this.mediaFiles.length===0) return; this.isLoading=true;
@@ -266,6 +286,8 @@ const artworkManager={
 		artworkTitle.update(mediaFile.meta);
 		this.isLoading=false;
 		this.attemptReady();
+		// Toggle model controls on change
+		try{ const mc=document.getElementById('model-controls'); if(mc) mc.style.display = (mediaFile.type==='model') ? 'block' : 'none'; if(window.modelControls) window.modelControls.refresh(); }catch(_){ }
 	},
 	preloadMedia(mediaFile){
 		const idx=mediaFile.index-1;
@@ -277,11 +299,17 @@ const artworkManager={
 				img.decoding='async';
 				img.onload=()=>{this.cache.set(idx,img);this.loadedCount++; this.attemptReady(); resolve(img);};
 				img.onerror=reject; img.src=mediaFile.url;
-			} else {
+			} else if(mediaFile.type==='video'){
 				const vid=document.createElement('video');
 				vid.preload='auto'; vid.muted=true; vid.loop=true;
 				vid.onloadeddata=()=>{this.cache.set(idx,vid);this.loadedCount++; this.attemptReady(); resolve(vid);};
 				vid.onerror=reject; vid.src=mediaFile.url; vid.load();
+			}else if(mediaFile.type==='model'){
+				// Resolve immediately and cache a model-viewer element; let the real load happen on attach
+				const mv=document.createElement('model-viewer');
+				mv.setAttribute('src', mediaFile.url);
+				this.cache.set(idx, mv);
+				this.loadedCount++; this.attemptReady(); resolve(mv);
 			}
 		}).finally(()=>this.preloadPromises.delete(idx));
 		this.preloadPromises.set(idx,p);
@@ -326,6 +354,8 @@ function isInContactUI(target){
 }
 function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{
 		if(isInContactUI(e.target)) { e.stopPropagation(); e.preventDefault(); return; }
+		// Ignore clicks originating from model-viewer interactions
+		try{ if(e.target && (e.target.tagName==='MODEL-VIEWER' || (e.target.closest && e.target.closest('model-viewer')))) { e.stopPropagation(); return; } }catch(_){ }
 		if(window.landscapeController && window.landscapeController.isPaused) { e.preventDefault(); return; }
 		e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork();
 	}); }
@@ -361,6 +391,70 @@ document.addEventListener('keydown',e=>{const pc=document.getElementById('portfo
 	if(e.key==='ArrowRight'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showPreviousArtwork(); }});
 
 window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
+
+// Scripted model rotation controls (wheel + arrow buttons)
+(function(){
+	const controls = {
+		root: null, up:null, down:null, left:null, right:null,
+		get mv(){ const el=document.getElementById('artwork-media'); return el && el.tagName==='MODEL-VIEWER' ? el : null; }
+	};
+	function ensure(){
+		if(controls.root) return true;
+		controls.root = document.getElementById('model-controls');
+		if(!controls.root) return false;
+		controls.up = document.getElementById('model-rot-up');
+		controls.down = document.getElementById('model-rot-down');
+		controls.left = document.getElementById('model-rot-left');
+		controls.right = document.getElementById('model-rot-right');
+		// Prevent click-to-next
+		[controls.up,controls.down,controls.left,controls.right].forEach(b=>{
+			if(!b) return;
+			b.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); spinFromButton(e.currentTarget); });
+		});
+		// Wheel rotate
+		window.addEventListener('wheel', e=>{
+			const mv = controls.mv; if(!mv || controls.root.style.display!=='block') return;
+			e.stopPropagation(); // do not scroll page
+			// Horizontal spin with wheel; shift to spin vertically
+			const delta = Math.sign(e.deltaY||0) * 8; // deg per notch
+			const vertical = e.shiftKey ? delta : 0;
+			const horizontal = e.shiftKey ? 0 : delta;
+			spin(horizontal, vertical);
+		}, { passive:false });
+		return true;
+	}
+	function parseOrbit(orbit){
+		// format: yawdeg deg pitchdeg deg radius[m]
+		// Accepts strings like "45deg 75deg auto"
+		const parts=(orbit||'0deg 75deg auto').split(/\s+/);
+		const yaw=parseFloat(parts[0])||0;
+		const pitch=parseFloat(parts[1])||75;
+		const radius=parts[2]||'auto';
+		return { yaw, pitch, radius };
+	}
+	function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+	function spin(hDeg, vDeg){
+		const mv = controls.mv; if(!mv) return;
+		const { yaw, pitch, radius } = parseOrbit(mv.getAttribute('camera-orbit'));
+		const ny = (yaw + hDeg);
+		const np = clamp(pitch + vDeg, 5, 175); // avoid flipping over poles
+		mv.setAttribute('camera-orbit', `${ny}deg ${np}deg ${radius}`);
+	}
+	function spinFromButton(btn){
+		if(!btn) return;
+		const step=12; // deg per click
+		if(btn.id==='model-rot-left') spin(-step,0);
+		else if(btn.id==='model-rot-right') spin(step,0);
+		else if(btn.id==='model-rot-up') spin(0,-step);
+		else if(btn.id==='model-rot-down') spin(0,step);
+	}
+	// Public refresh when media changes
+	window.modelControls = {
+		refresh(){ if(!ensure()) return; /* no-op */ }
+	};
+	// Initialize bindings
+	ensure();
+})();
 
 // Background slideshow with 6s crossfade
 (function(){
