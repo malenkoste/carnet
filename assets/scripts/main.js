@@ -1,11 +1,6 @@
 // Direct-entry portfolio version (no Unity). Uses transition video as loader until first artwork is ready.
-// Overlay gating: only allow after loader finished AND first artwork displayed
-window.overlayEnabled = false;
-window.firstArtworkReady = false;
 window.loaderDone = false;
-function tryEnableOverlay(){
-	if(window.firstArtworkReady && window.loaderDone){ window.overlayEnabled = true; }
-}
+window.firstArtworkReady = false;
 
 let currentArtworkName='';
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints>2) || window.innerWidth<=768;
@@ -36,77 +31,9 @@ const audioSystem={backgroundAudio:null,clickAudio:null,audioInitialized:false,_
 function initializeAllAudio(){audioSystem.init(); audioSystem.startBackgroundMusic();}
 ['click','keydown','touchstart'].forEach(evt=>document.addEventListener(evt,initializeAllAudio,{once:true}));
 
-const titleManager={getTitleForArtwork(i,record){return record?.title || `ARTWORK ${i}`;},getMeta(record){return record?.meta||'';}};
-// Cursor overlay controller for showing title/meta near the cursor when over the artwork area
-const cursorOverlay=(function(){
-	let el=null; let active=false; let latest={ title:'', meta:'' }; let lastPos={x:innerWidth/2,y:innerHeight/2};
-	let hideTimer=null;
-	function ensure(){ if(!el) el=document.getElementById('cursor-overlay'); return el; }
-	function setContent(title, meta){ latest.title=title||''; latest.meta=meta||''; const o=ensure(); if(!o) return; o.innerHTML=`<span class="title">${latest.title}</span><span class="meta">${latest.meta}</span>`; }
-	function visible(v){ const o=ensure(); if(!o) return; o.style.opacity = v ? '1' : '0'; o.style.display = v ? 'block' : 'none'; }
-	function show(){ if(!window.overlayEnabled) return; const o=ensure(); if(!o) return; active=true; o.style.transform='translate3d(-9999px,-9999px,0)'; visible(true); resetAutoHide(); }
-	function hide(){ const o=ensure(); if(!o) return; active=false; clearTimeout(hideTimer); hideTimer=null; visible(false); }
-	function resetAutoHide(){ clearTimeout(hideTimer); hideTimer=setTimeout(()=>{ hide(); }, 2000); }
-	function move(x,y){
-		lastPos={x,y}; const o=ensure(); if(!o||!active) return;
-		const pad=14; const ow=o.offsetWidth, oh=o.offsetHeight; const maxX=window.innerWidth - ow - pad; const maxY=window.innerHeight - oh - pad;
-		// Always place to the right of the cursor by default; flip to left if no space
-		const gapX = 120; // horizontal gap from pointer (tripled)
-		const gapY = 54;  // vertical nudge below pointer (tripled)
-		let placedRight = true;
-		let nx = x + gapX;
-		if(nx > maxX){ placedRight = false; nx = Math.max(pad, x - ow - gapX); }
-		let ny = Math.min(y + gapY, maxY);
-		// Collision with screen boundaries is handled by clamping above; avoid bouncy icons too
-		try{
-			const blockers=[ 'contact-button','fun-bouncer','watch-button','groovy-bouncer','poppies-bouncer' ]
-				.map(id=>document.getElementById(id)).filter(Boolean).map(el=>el.getBoundingClientRect());
-			const r={ left:nx, top:ny, right:nx+o.offsetWidth, bottom:ny+o.offsetHeight };
-			const inflate=10; // slightly larger buffer so overlay collider stays off icons
-			let adjusted=true; let iter=0; const limit=6;
-			while(adjusted && iter++<limit){
-				adjusted=false;
-				for(const b of blockers){
-					const bx=b.left-inflate, by=b.top-inflate, br=b.right+inflate, bb=b.bottom+inflate;
-					const overlap = !(r.right<bx || r.left>br || r.bottom<by || r.top>bb);
-					if(overlap){
-						// Push minimally away along smallest penetration axis
-						const dxLeft = r.right - bx;  // move left by this
-						const dxRight = br - r.left;  // move right by this
-						const dyUp = r.bottom - by;   // move up by this
-						const dyDown = bb - r.top;    // move down by this
-						const min = Math.min(dxLeft, dxRight, dyUp, dyDown);
-						if(min===dxLeft){ nx -= dxLeft; r.left-=dxLeft; r.right-=dxLeft; }
-						else if(min===dxRight){ nx += dxRight; r.left+=dxRight; r.right+=dxRight; }
-						else if(min===dyUp){ ny -= dyUp; r.top-=dyUp; r.bottom-=dyUp; }
-						else { ny += dyDown; r.top+=dyDown; r.bottom+=dyDown; }
-						// Re-clamp to viewport
-						nx=Math.max(pad, Math.min(nx, maxX)); ny=Math.max(pad, Math.min(ny, maxY));
-						adjusted=true;
-					}
-				}
-			}
-		}catch(e){}
-		// Final guarantee: keep the pointer outside of the overlay rect so clicks are never occluded by collider
-		try{
-			const w=ow||o.offsetWidth, h=oh||o.offsetHeight;
-			// If overlay still covers the pointer, snap to the side away from the cursor
-			if(x>=nx && x<=nx+w && y>=ny && y<=ny+h){
-				if(placedRight){ nx = Math.max(pad, x + gapX); }
-				else { nx = Math.max(pad, Math.min(maxX, x - w - gapX)); }
-			}
-			// Re-clamp after exclusion
-			nx=Math.max(pad, Math.min(nx, maxX)); ny=Math.max(pad, Math.min(ny, maxY));
-		}catch(_){ }
-		o.style.transform=`translate3d(${nx}px,${ny}px,0)`; resetAutoHide();
-	}
-	function placeNow(){ move(lastPos.x, lastPos.y); }
-	return { setContent, show, hide, move, placeNow };
-})();
-// No-op holder to satisfy existing calls; replaced with overlay logic
-const artworkTitle={init(){},update(record){ if(!record) return; const title=titleManager.getTitleForArtwork(record.index,record); const meta=titleManager.getMeta(record); cursorOverlay.setContent(title, meta); }};
+// Overlay removed
 
-const mobileTouch={touchArea:null,init(){this.touchArea=document.getElementById('mobile-touch-area');if(this.touchArea&&isMobile){this.setupTouchEvents();}},setupTouchEvents(){let touchStartTime=0;this.touchArea.addEventListener('touchstart',e=>{e.preventDefault();touchStartTime=Date.now();},{passive:false});this.touchArea.addEventListener('touchend',e=>{e.preventDefault();if(window.landscapeController && window.landscapeController.isPaused) return; if(Date.now()-touchStartTime<1000){audioSystem.playClickSound();setTimeout(()=>artworkManager.showNextArtwork(),20);}},{passive:false});['contextmenu','touchmove'].forEach(evt=>this.touchArea.addEventListener(evt,e=>{e.preventDefault();},{passive:false}));}};
+const mobileTouch={touchArea:null,init(){this.touchArea=document.getElementById('mobile-touch-area');if(this.touchArea&&isMobile){this.setupTouchEvents();}},setupTouchEvents(){let touchStartTime=0;this.touchArea.addEventListener('touchstart',e=>{e.preventDefault();touchStartTime=Date.now();},{passive:false});this.touchArea.addEventListener('touchend',e=>{e.preventDefault();if(window.landscapeController && window.landscapeController.isPaused) return; if(Date.now()-touchStartTime<1000){ try{ const m=document.getElementById('artwork-media'); if(m && m.tagName==='MODEL-VIEWER') return; }catch(_){ } audioSystem.playClickSound(); setTimeout(()=>artworkManager.showNextArtwork(),20);}},{passive:false});['contextmenu','touchmove'].forEach(evt=>this.touchArea.addEventListener(evt,e=>{e.preventDefault();},{passive:false}));}};
 
 function getAdaptivePreloadCount(){const nav=navigator.connection||navigator.webkitConnection||navigator.mozConnection; if(!nav) return 4; const slow=['slow-2g','2g','3g']; if(slow.includes(nav.effectiveType)) return 2; if(nav.downlink && nav.downlink>10) return 8; return 4; }
 
@@ -119,11 +46,19 @@ const artworkManager={
 		try{
 			const res=await fetch('assets/scripts/artworks.json',{cache:'no-store'});
 			this.manifest=await res.json();
-			this.mediaFiles=this.manifest.map((m,idx)=>{
+			let allFiles=this.manifest.map((m,idx)=>{
 				const ext=m.file.split('.').pop();
 				const type=['mp4','webm','mov'].includes(ext)?'video':(['glb','gltf','usdz'].includes(ext)?'model':'image');
 				return { url:`assets/artwork/${m.file}`, type, name:m.file, index:idx+1, id:idx, meta:m };
 			});
+			// Filter by page mode (models | animations | images)
+			const mode = (document.body && (document.body.dataset.mode||document.body.getAttribute('data-mode'))) || '';
+			let desiredType=null;
+			if(mode==='models') desiredType='model';
+			else if(mode==='animations') desiredType='video';
+			else if(mode==='images') desiredType='image';
+			this.mediaFiles = desiredType ? allFiles.filter(f=>f.type===desiredType) : allFiles;
+			if(!this.mediaFiles.length){ this.mediaFiles = allFiles; }
 			if(this.mediaFiles.length){
 				this.initialPreloadTarget=Math.min(this.PRELOAD_AHEAD+1,this.mediaFiles.length);
 				this.preloadAround(this.currentIndex);
@@ -137,34 +72,35 @@ const artworkManager={
 		}
 	},
 	_prepareIncoming(mediaFile, cacheIndex){
-		let el=this.cache.get(cacheIndex);
-		if(el){
-			if(mediaFile.type==='image'){
-				el=el.cloneNode(true); // clone image so CSS animation restarts
-			} else if(mediaFile.type==='video'){
-				el.classList.remove('wavy-in','wavy-out');
-			} else if(mediaFile.type==='model'){
-				// Important: clone model-viewer so it re-mounts cleanly
-				el = el.cloneNode(true);
-			}
-		} else {
-			if(mediaFile.type==='video'){
-				el=document.createElement('video'); el.src=mediaFile.url;
-			}else if(mediaFile.type==='model'){
-				el=document.createElement('model-viewer');
-				el.setAttribute('src', mediaFile.url);
-				// Disable native controls so we can drive rotation ourselves
-				el.removeAttribute('camera-controls');
-				el.setAttribute('interaction-prompt','none');
-				el.setAttribute('alt', mediaFile.meta?.alt || mediaFile.name);
-				el.setAttribute('exposure','1');
-				el.setAttribute('shadow-intensity','0');
-				el.setAttribute('ar-modes','webxr scene-viewer quick-look');
+		let elRef=this.cache.get(cacheIndex);
+		let el;
+		if(mediaFile.type==='image'){
+			if(elRef){
+				// restart CSS animations by cloning
+				el=elRef.cloneNode(true);
 			}else{
 				el=document.createElement('img'); el.src=mediaFile.url;
 			}
+		} else if(mediaFile.type==='video'){
+			if(elRef){
+				el=elRef; el.classList.remove('wavy-in','wavy-out');
+			}else{
+				el=document.createElement('video'); el.src=mediaFile.url;
+			}
+		} else if(mediaFile.type==='model'){
+			// Always create a fresh model-viewer (avoid cloning heavy DOM; ensures proper re-render)
+			el=document.createElement('model-viewer');
+			el.setAttribute('src', mediaFile.url);
+			el.removeAttribute('camera-controls');
+			el.setAttribute('interaction-prompt','none');
+			el.setAttribute('alt', mediaFile.meta?.alt || mediaFile.name);
+			el.setAttribute('exposure','1');
+			el.setAttribute('ar-modes','webxr scene-viewer quick-look');
 		}
 		return el;
+	},
+	_attachModelLoader(modelEl){
+		/* loader helper removed (restoring native model-viewer progress bar) */
 	},
 	async showInitialArtwork(){
 		if(this.initialArtworkInserted) return;
@@ -174,6 +110,7 @@ const artworkManager={
 		if(mediaFile.type==='video'){
 			preloadedEl.loop=true; preloadedEl.muted=true; preloadedEl.autoplay=true; preloadedEl.playsInline=true; preloadedEl.controls=false;
 		}
+		// model loader helper removed; use native progress bar
 		preloadedEl.id='artwork-media';
 		preloadedEl.style.maxWidth='60vw'; preloadedEl.style.maxHeight='70vh';
 		preloadedEl.style.objectFit='contain'; preloadedEl.style.willChange='transform, clip-path';
@@ -187,14 +124,14 @@ const artworkManager={
 		this.currentIndex=0;
 		currentArtworkName=mediaFile.name;
 		this.viewedArtworks.add(mediaFile.index);
-		artworkTitle.update(mediaFile.meta);
+		/* overlay removed */
 		this.initialArtworkInserted=true;
 		this.initialArtworkDisplayed=true;
 		this.attemptReady();
-		// Show or hide model rotation controls depending on media
-		try{ const mc=document.getElementById('model-controls'); if(mc) mc.style.display = (mediaFile.type==='model') ? 'block' : 'none'; if(window.modelControls) window.modelControls.refresh(); }catch(_){ }
+		// Always show navigation buttons for all media types now
+		try{ const nb=document.getElementById('next-artwork'); if(nb) nb.style.display='block'; const pb=document.getElementById('prev-artwork'); if(pb) pb.style.display='block'; }catch(_){ }
 		// Mark first artwork ready; overlay will enable once loader completes
-		try{ window.firstArtworkReady = true; tryEnableOverlay(); }catch(_){ }
+		try{ window.firstArtworkReady = true; }catch(_){ }
 	},
 	async showNextArtwork(){
 		if(this.paused || this.isLoading || this.mediaFiles.length===0) return; this.isLoading=true;
@@ -216,6 +153,7 @@ const artworkManager={
 		if(mediaFile.type==='video'){
 			preloadedEl.loop=true; preloadedEl.muted=true; preloadedEl.autoplay=true; preloadedEl.playsInline=true; preloadedEl.controls=false;
 		}
+		// native progress bar only
 		preloadedEl.id='artwork-media';
 		preloadedEl.style.maxWidth='60vw'; preloadedEl.style.maxHeight='70vh';
 		preloadedEl.style.objectFit='contain'; preloadedEl.style.willChange='transform, clip-path';
@@ -235,13 +173,12 @@ const artworkManager={
 		this.currentIndex=nextIndex;
 		currentArtworkName=mediaFile.name;
 		this.viewedArtworks.add(mediaFile.index);
-	// Legacy bottom-right contact box disabled
-		artworkTitle.update(mediaFile.meta);
+	// Legacy bottom-right contact box disabled; overlay removed
 		this.isLoading=false;
 		if(!this.initialArtworkDisplayed) this.initialArtworkDisplayed=true;
 		this.attemptReady();
-		// Toggle model controls on change
-		try{ const mc=document.getElementById('model-controls'); if(mc) mc.style.display = (mediaFile.type==='model') ? 'block' : 'none'; if(window.modelControls) window.modelControls.refresh(); }catch(_){ }
+		// Keep nav buttons visible for all media
+		try{ const nb=document.getElementById('next-artwork'); if(nb) nb.style.display='block'; const pb=document.getElementById('prev-artwork'); if(pb) pb.style.display='block'; }catch(_){ }
 	},
 	async showPreviousArtwork(){
 		if(this.paused || this.isLoading || this.mediaFiles.length===0) return; this.isLoading=true;
@@ -263,6 +200,7 @@ const artworkManager={
 		if(mediaFile.type==='video'){
 			preloadedEl.loop=true; preloadedEl.muted=true; preloadedEl.autoplay=true; preloadedEl.playsInline=true; preloadedEl.controls=false;
 		}
+		// native progress bar only
 		preloadedEl.id='artwork-media';
 		preloadedEl.style.maxWidth='60vw'; preloadedEl.style.maxHeight='70vh';
 		preloadedEl.style.objectFit='contain'; preloadedEl.style.willChange='transform, clip-path';
@@ -282,12 +220,11 @@ const artworkManager={
 		this.currentIndex=prevIndex;
 		currentArtworkName=mediaFile.name;
 		this.viewedArtworks.add(mediaFile.index);
-	// Legacy bottom-right contact box disabled
-		artworkTitle.update(mediaFile.meta);
+	// Legacy bottom-right contact box disabled; overlay removed
 		this.isLoading=false;
 		this.attemptReady();
-		// Toggle model controls on change
-		try{ const mc=document.getElementById('model-controls'); if(mc) mc.style.display = (mediaFile.type==='model') ? 'block' : 'none'; if(window.modelControls) window.modelControls.refresh(); }catch(_){ }
+		// Keep nav buttons visible for all media
+		try{ const nb=document.getElementById('next-artwork'); if(nb) nb.style.display='block'; const pb=document.getElementById('prev-artwork'); if(pb) pb.style.display='block'; }catch(_){ }
 	},
 	preloadMedia(mediaFile){
 		const idx=mediaFile.index-1;
@@ -305,11 +242,10 @@ const artworkManager={
 				vid.onloadeddata=()=>{this.cache.set(idx,vid);this.loadedCount++; this.attemptReady(); resolve(vid);};
 				vid.onerror=reject; vid.src=mediaFile.url; vid.load();
 			}else if(mediaFile.type==='model'){
-				// Resolve immediately and cache a model-viewer element; let the real load happen on attach
-				const mv=document.createElement('model-viewer');
-				mv.setAttribute('src', mediaFile.url);
-				this.cache.set(idx, mv);
-				this.loadedCount++; this.attemptReady(); resolve(mv);
+				// Lightweight sentinel: just record that this model URL was queued; real element created on display
+				const sentinel={ type:'model-sentinel', url:mediaFile.url };
+				this.cache.set(idx, sentinel);
+				this.loadedCount++; this.attemptReady(); resolve(sentinel);
 			}
 		}).finally(()=>this.preloadPromises.delete(idx));
 		this.preloadPromises.set(idx,p);
@@ -327,19 +263,14 @@ const artworkManager={
 
  const portfolioLoader={isLoading:true,ready:false,minShowMs:4000,startTime:0,show(){const el=document.getElementById('portfolio-loading');const vid=document.getElementById('portfolio-loading-video'); if(el){el.style.display='flex'; el.classList.remove('fade-out');}
  if(vid){vid.playbackRate=0.66; vid.currentTime=0; const ensure=()=>{const p=vid.play(); if(p) p.catch(()=>setTimeout(ensure,400));}; ensure(); vid.addEventListener('stalled',ensure); vid.addEventListener('pause',()=>{ if(!portfolioLoader.ready && !vid.dataset.landscapePaused) ensure(); });}
- this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); try{ window.loaderDone = true; tryEnableOverlay(); }catch(_){ } }};
+ this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); try{ window.loaderDone = true; }catch(_){ } }};
  
 
 function isInContactUI(target){
 	// Treat popover containers as active only when visible to avoid blocking clicks after close
 	const entries=[
 		{ id:'contact-button', always:true },
-		{ id:'watch-button', always:true },
-		{ id:'open-contact-form', always:true },
-		{ id:'watch-video-button', always:true },
-		{ id:'contact-popover', visible:true },
 		{ id:'contact-form-popover', visible:true },
-		{ id:'watch-popover', visible:true },
 		{ id:'contact-form', visible:true },
 		{ id:'contact-form-status', visible:true },
 		{ id:'close-contact-form', visible:true },
@@ -354,106 +285,64 @@ function isInContactUI(target){
 }
 function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{
 		if(isInContactUI(e.target)) { e.stopPropagation(); e.preventDefault(); return; }
-		// Ignore clicks originating from model-viewer interactions
-		try{ if(e.target && (e.target.tagName==='MODEL-VIEWER' || (e.target.closest && e.target.closest('model-viewer')))) { e.stopPropagation(); return; } }catch(_){ }
+		// If current media is a model, disable click-to-next entirely
+		try{
+			const m=document.getElementById('artwork-media');
+			if(m && m.tagName==='MODEL-VIEWER'){ e.stopPropagation(); return; }
+			// Otherwise, ignore clicks originating from model-viewer interactions just in case
+			if(e.target && (e.target.tagName==='MODEL-VIEWER' || (e.target.closest && e.target.closest('model-viewer')))) { e.stopPropagation(); return; }
+		}catch(_){ }
 		if(window.landscapeController && window.landscapeController.isPaused) { e.preventDefault(); return; }
 		e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork();
 	}); }
  mobileTouch.init(); }
- // Overlay behavior
- (function(){
-	 const fine = window.matchMedia ? window.matchMedia('(pointer: fine)').matches : !isMobile;
-	 const coarse = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : isMobile;
-	 // Desktop: show anywhere on pointer move (global), hide after 2s via controller
-	 if(fine){
-		 window.addEventListener('pointermove', (e)=>{ if(!window.overlayEnabled) return; cursorOverlay.show(); cursorOverlay.move(e.clientX, e.clientY); }, { passive:true });
-	 }
-	 // Mobile/touch unchanged: tap to show anywhere
-	 if(coarse){
-		 const tapHandler = (e)=>{
-			 if(!window.overlayEnabled) return;
-			 try{
-				 const t = e.target; if(isInContactUI && isInContactUI(t)) return;
-				 const touch = e.changedTouches ? e.changedTouches[0] : null;
-				 const x = touch ? touch.clientX : (e.clientX||0);
-				 const y = touch ? touch.clientY : (e.clientY||0);
-				 cursorOverlay.show(); cursorOverlay.move(x, y);
-			 }catch(_){ }
-		 };
-		 window.addEventListener('touchend', tapHandler, { passive:false });
-		 window.addEventListener('pointerup', (e)=>{ if(e.pointerType==='touch') tapHandler(e); }, { passive:true });
-	 }
- })();
+ // Overlay behavior removed
 
 document.addEventListener('keydown',e=>{const pc=document.getElementById('portfolio-content'); if(!pc||pc.style.display!=='block') return; 
 	if(window.landscapeController && window.landscapeController.isPaused) return;
 	if(isInContactUI(document.activeElement) || isInContactUI(e.target)) { return; }
+	// If a model is active, reserve arrows for rotation only (handled elsewhere)
+	const am=document.getElementById('artwork-media'); const isModel = !!(am && am.tagName==='MODEL-VIEWER');
+	if(isModel) return;
 	if(e.key==='ArrowRight'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showNextArtwork(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); audioSystem.playClickSound(); artworkManager.showPreviousArtwork(); }});
 
-window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
+window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
 
-// Scripted model rotation controls (wheel + arrow buttons)
+// Scripted model rotation: wheel, drag, arrow keys, touch
 (function(){
-	const controls = {
-		root: null, up:null, down:null, left:null, right:null,
-		get mv(){ const el=document.getElementById('artwork-media'); return el && el.tagName==='MODEL-VIEWER' ? el : null; }
-	};
-	function ensure(){
-		if(controls.root) return true;
-		controls.root = document.getElementById('model-controls');
-		if(!controls.root) return false;
-		controls.up = document.getElementById('model-rot-up');
-		controls.down = document.getElementById('model-rot-down');
-		controls.left = document.getElementById('model-rot-left');
-		controls.right = document.getElementById('model-rot-right');
-		// Prevent click-to-next
-		[controls.up,controls.down,controls.left,controls.right].forEach(b=>{
-			if(!b) return;
-			b.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); spinFromButton(e.currentTarget); });
-		});
-		// Wheel rotate
-		window.addEventListener('wheel', e=>{
-			const mv = controls.mv; if(!mv || controls.root.style.display!=='block') return;
-			e.stopPropagation(); // do not scroll page
-			// Horizontal spin with wheel; shift to spin vertically
-			const delta = Math.sign(e.deltaY||0) * 8; // deg per notch
-			const vertical = e.shiftKey ? delta : 0;
-			const horizontal = e.shiftKey ? 0 : delta;
-			spin(horizontal, vertical);
-		}, { passive:false });
-		return true;
-	}
 	function parseOrbit(orbit){
-		// format: yawdeg deg pitchdeg deg radius[m]
-		// Accepts strings like "45deg 75deg auto"
 		const parts=(orbit||'0deg 75deg auto').split(/\s+/);
-		const yaw=parseFloat(parts[0])||0;
-		const pitch=parseFloat(parts[1])||75;
-		const radius=parts[2]||'auto';
-		return { yaw, pitch, radius };
+		return { yaw:parseFloat(parts[0])||0, pitch:parseFloat(parts[1])||75, radius:parts[2]||'auto' };
 	}
 	function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-	function spin(hDeg, vDeg){
-		const mv = controls.mv; if(!mv) return;
-		const { yaw, pitch, radius } = parseOrbit(mv.getAttribute('camera-orbit'));
-		const ny = (yaw + hDeg);
-		const np = clamp(pitch + vDeg, 5, 175); // avoid flipping over poles
-		mv.setAttribute('camera-orbit', `${ny}deg ${np}deg ${radius}`);
-	}
-	function spinFromButton(btn){
-		if(!btn) return;
-		const step=12; // deg per click
-		if(btn.id==='model-rot-left') spin(-step,0);
-		else if(btn.id==='model-rot-right') spin(step,0);
-		else if(btn.id==='model-rot-up') spin(0,-step);
-		else if(btn.id==='model-rot-down') spin(0,step);
-	}
-	// Public refresh when media changes
-	window.modelControls = {
-		refresh(){ if(!ensure()) return; /* no-op */ }
-	};
-	// Initialize bindings
-	ensure();
+	function spin(mv,hDeg,vDeg){ if(!mv) return; const {yaw,pitch,radius}=parseOrbit(mv.getAttribute('camera-orbit')); const ny=yaw+hDeg; const np=clamp(pitch+vDeg,5,175); mv.setAttribute('camera-orbit',`${ny}deg ${np}deg ${radius}`); }
+	function currentMV(){ const el=document.getElementById('artwork-media'); return el && el.tagName==='MODEL-VIEWER'? el : null; }
+
+	// Wheel (horizontal by default, Shift = vertical)
+	window.addEventListener('wheel',e=>{ const mv=currentMV(); if(!mv) return; e.stopPropagation(); const delta=Math.sign(e.deltaY||0)*8; if(e.shiftKey) spin(mv,0,delta); else spin(mv,delta,0); },{passive:false});
+	// Arrow keys continuous rotation (reuse previous logic simplified)
+	const keyState={left:false,right:false,up:false,down:false};
+	setInterval(()=>{ const mv=currentMV(); if(!mv) return; const step=4; const h=(keyState.left?-step:0)+(keyState.right?step:0); const v=(keyState.up?-step:0)+(keyState.down?step:0); if(h||v) spin(mv,h,v); },30);
+	window.addEventListener('keydown',e=>{ const mv=currentMV(); if(!mv) return; if(e.key==='ArrowLeft'){keyState.left=true; e.preventDefault();} else if(e.key==='ArrowRight'){keyState.right=true; e.preventDefault();} else if(e.key==='ArrowUp'){keyState.up=true; e.preventDefault();} else if(e.key==='ArrowDown'){keyState.down=true; e.preventDefault();} });
+	window.addEventListener('keyup',e=>{ if(e.key==='ArrowLeft') keyState.left=false; else if(e.key==='ArrowRight') keyState.right=false; else if(e.key==='ArrowUp') keyState.up=false; else if(e.key==='ArrowDown') keyState.down=false; });
+
+	// Mouse drag (left button) & right button
+	let dragging=false, lastX=0, lastY=0, button=0;
+	window.addEventListener('pointerdown',e=>{ const mv=currentMV(); if(!mv) return; if(e.button===0||e.button===2){ dragging=true; button=e.button; lastX=e.clientX; lastY=e.clientY; mv.style.pointerEvents='none'; e.preventDefault(); }});
+	window.addEventListener('pointermove',e=>{ if(!dragging) return; const mv=currentMV(); if(!mv) return; const dx=e.clientX-lastX; const dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY; const scale = (button===2)?0.5:1; spin(mv, dx*0.4*scale, dy*0.4*scale); });
+	window.addEventListener('pointerup',()=>{ dragging=false; const mv=currentMV(); if(mv) mv.style.pointerEvents=''; });
+	window.addEventListener('contextmenu',e=>{ const mv=currentMV(); if(mv && dragging) { e.preventDefault(); } });
+
+	// Touch swipe + long-hold
+	let lastTouch=null, holdTimer=null;
+	function startHold(dirX,dirY){ clearInterval(holdTimer); holdTimer=setInterval(()=>{ const mv=currentMV(); if(mv) spin(mv,dirX,dirY); },30); }
+	function stopHold(){ clearInterval(holdTimer); holdTimer=null; }
+	window.addEventListener('touchstart',e=>{ const mv=currentMV(); if(!mv) return; const t=e.touches[0]; lastTouch={x:t.clientX,y:t.clientY}; setTimeout(()=>{ if(lastTouch){ startHold(3,0); } },300); },{passive:true});
+	window.addEventListener('touchmove',e=>{ const mv=currentMV(); if(!mv||!lastTouch) return; const t=e.touches[0]; const dx=t.clientX-lastTouch.x; const dy=t.clientY-lastTouch.y; lastTouch={x:t.clientX,y:t.clientY}; spin(mv, Math.sign(dx)*Math.min(8,Math.abs(dx)/4), Math.sign(dy)*Math.min(8,Math.abs(dy)/4)); },{passive:true});
+	window.addEventListener('touchend',()=>{ lastTouch=null; stopHold(); },{passive:true});
+
+	// Wire prev/next buttons
+	setTimeout(()=>{ const nb=document.getElementById('next-artwork'); if(nb) nb.addEventListener('click',e=>{ e.stopPropagation(); artworkManager.showNextArtwork(); }); const pb=document.getElementById('prev-artwork'); if(pb) pb.addEventListener('click',e=>{ e.stopPropagation(); artworkManager.showPreviousArtwork(); }); },0);
 })();
 
 // Background slideshow with 6s crossfade
@@ -534,39 +423,12 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 // Contact popover toggle (non-intrusive)
 (function(){
 	const btn=document.getElementById('contact-button');
-	const pop=document.getElementById('contact-popover');
-	if(!btn||!pop) return;
-	const mobileOverlay=document.getElementById('mobile-touch-area');
-		function hide(){ 
-			pop.style.display='none'; 
-			btn.setAttribute('aria-expanded','false'); 
-			// If focus is inside the popover, blur it so key handlers aren't blocked
-			try{ if(document.activeElement && pop.contains(document.activeElement)) document.activeElement.blur(); }catch(_){}
-			// Re-enable mobile tap overlay when closing via any path (icon toggle, Escape, or outside click)
-			if(mobileOverlay) mobileOverlay.style.display='';
-		}
-		function show(){
-			// Center popover under the current animated button position
-			const rect = btn.getBoundingClientRect();
-			const popWidth = Math.min(window.innerWidth*0.9, 420);
-			const left = Math.max(10, Math.min(window.innerWidth - popWidth - 10, rect.left + rect.width/2 - popWidth/2));
-			pop.style.left = left + 'px';
-			pop.style.top = Math.max(10, rect.bottom + 8) + 'px';
-			pop.style.maxWidth = popWidth + 'px';
-			pop.style.transform = 'none';
-			pop.style.display='block';
-			btn.setAttribute('aria-expanded','true');
-			if(mobileOverlay) mobileOverlay.style.display='none';
-		}
-	// Clicking the contact icon toggles the SEND MESSAGE popover (re-enabled)
-	btn.addEventListener('click',e=>{ 
-		e.stopPropagation(); 
-		if(pop.style.display==='block'){ hide(); } else { show(); }
-	});
-	// Outside tap/click closes
-	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) { hide(); } });
-	// Escape closes
-	document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
+	if(!btn) return;
+	const openForm=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
+		try{ window.contactFormController && window.contactFormController.open(); }catch(_){ }
+	};
+	btn.addEventListener('click', openForm);
+	btn.addEventListener('touchend', openForm, { passive:false });
 })();
 
 	// Contact form popover and submission (optional endpoint)
@@ -664,202 +526,71 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 		});
 	})();
 
-// Unified bouncing manager: single rAF, independent motion per icon (no synchrony)
+// Bouncing icons system (restored for groovy & poppies)
 (function(){
 	const getViewport = () => {
 		const vv = window.visualViewport;
 		return vv ? { w: Math.floor(vv.width), h: Math.floor(vv.height) } : { w: innerWidth, h: innerHeight };
 	};
-
-	function measure(el){ const r=el.getBoundingClientRect(); return { w:r.width||120, h:r.height||120, l:r.left||0, t:r.top||0 }; }
 	function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 	function rnd(min,max){ return min + Math.random()*(max-min); }
 	function rndSign(){ return Math.random()>0.5?1:-1; }
+	function measure(el){ const r=el.getBoundingClientRect(); return { w:r.width||120, h:r.height||120 }; }
 
-	// Helper: get overlay rect if overlay text is visible
-	function getOverlayRect(){
-		try{
-			if(!window.overlayEnabled) return null;
-			const el = document.getElementById('cursor-overlay');
-			if(!el) return null;
-			const cs = getComputedStyle(el);
-			if(cs.display === 'none' || parseFloat(cs.opacity||'0') <= 0.01) return null;
-			const r = el.getBoundingClientRect();
-			return { l:r.left, t:r.top, r:r.right, b:r.bottom };
-		}catch(_){ return null; }
-	}
-
-	// Build sprite state
-	const sprites = [];
-	function addSprite(el, speedRange){
-		if(!el) return null;
-		const wrap = el.querySelector('.squashwrap');
-		const rot = el.querySelector('.rotwrap');
-		if(rot){ rot.style.animationDelay = `-${rnd(0,10).toFixed(2)}s`; }
+	const sprites=[];
+	function addSprite(id, speedRange){
+		const el=document.getElementById(id); if(!el) return null;
 		const { w:vw, h:vh } = getViewport();
-		const m = measure(el);
-	const w = m.w, h = m.h;
-		// Randomize start to avoid same-point spawn
-		let x = clamp(rnd(0, Math.max(0, vw - w)), 0, Math.max(0, vw - w));
-		let y = clamp(rnd(0, Math.max(0, vh - h)), 0, Math.max(0, vh - h));
-		// Independent speeds
+		const m=measure(el); const w=m.w, h=m.h;
+		let x = rnd(0, Math.max(0, vw - w));
+		let y = rnd(0, Math.max(0, vh - h));
 		let vx = rnd(speedRange.vx[0], speedRange.vx[1]) * rndSign();
 		let vy = rnd(speedRange.vy[0], speedRange.vy[1]) * rndSign();
-		const timeScale = rnd(0.92, 1.08);
-		const jitter = rnd(6, 12); // px/s^2
-		el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-	const s = { el, wrap, x, y, vx, vy, w, h, timeScale, jitter, active:true, speedRange };
-		sprites.push(s);
-		return s;
+		el.style.transform=`translate3d(${x}px,${y}px,0)`;
+		const sprite={ el,x,y,vx,vy,w,h,speedRange, jitter:rnd(6,12), timeScale:rnd(0.92,1.08), active:true };
+		sprites.push(sprite);
+		return sprite;
 	}
 
-	// Register existing icons
-	const contactSprite = addSprite(document.getElementById('contact-button'), { vx:[120,170], vy:[90,140] });
-	const funSprite = addSprite(document.getElementById('fun-bouncer'), { vx:[100,170], vy:[80,140] });
-	const watchSprite = addSprite(document.getElementById('watch-button'), { vx:[90,140], vy:[110,160] });
+	const groovy=addSprite('groovy-bouncer',{ vx:[110,160], vy:[100,150] });
+	const poppies=addSprite('poppies-bouncer',{ vx:[100,150], vy:[90,140] });
 
-	// Register fourth and fifth icons
-	const groovySprite = addSprite(document.getElementById('groovy-bouncer'), { vx:[110,160], vy:[100,150] });
-	const poppiesSprite = addSprite(document.getElementById('poppies-bouncer'), { vx:[100,150], vy:[90,140] });
-
-	// Vanish/respawn for fun-bouncer
-	if(funSprite){
-		const respawn = ()=>{
-			const { w:vw, h:vh } = getViewport();
-			const m = measure(funSprite.el); funSprite.w=m.w; funSprite.h=m.h;
-			funSprite.x = rnd(0, Math.max(0, vw - funSprite.w));
-			funSprite.y = rnd(0, Math.max(0, vh - funSprite.h));
-			funSprite.vx = rnd(funSprite.speedRange.vx[0], funSprite.speedRange.vx[1]) * rndSign();
-			funSprite.vy = rnd(funSprite.speedRange.vy[0], funSprite.speedRange.vy[1]) * rndSign();
-			funSprite.el.style.transform = `translate3d(${funSprite.x}px, ${funSprite.y}px, 0)`;
-			funSprite.active = true;
-		};
-		const vanish = (e)=>{
-			if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
-			funSprite.el.style.display='none';
-			funSprite.active=false;
-			setTimeout(()=>{ funSprite.el.style.display=''; respawn(); }, 2500);
-		};
-		funSprite.el.addEventListener('click', vanish);
-		funSprite.el.addEventListener('touchend', vanish, { passive:false });
+	if(groovy){
+		const openInsta=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); } window.open('https://www.instagram.com/malenkoste','_blank','noopener'); };
+		groovy.el.addEventListener('click', openInsta);
+		groovy.el.addEventListener('touchend', openInsta, { passive:false });
 	}
-
-	// Vanish/respawn helper
-	function wireVanish(sprite, delayMs=2500){
-		if(!sprite) return;
-		const respawn = ()=>{
-			const { w:vw, h:vh } = getViewport();
-			const m = measure(sprite.el); sprite.w=m.w; sprite.h=m.h;
-			sprite.x = rnd(0, Math.max(0, vw - sprite.w));
-			sprite.y = rnd(0, Math.max(0, vh - sprite.h));
-			sprite.vx = rnd(sprite.speedRange.vx[0], sprite.speedRange.vx[1]) * rndSign();
-			sprite.vy = rnd(sprite.speedRange.vy[0], sprite.speedRange.vy[1]) * rndSign();
-			sprite.el.style.transform = `translate3d(${sprite.x}px, ${sprite.y}px, 0)`;
-			sprite.active = true;
-		};
-		const vanish = (e)=>{
-			if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
-			sprite.el.style.display='none';
-			sprite.active=false;
-			setTimeout(()=>{ sprite.el.style.display=''; respawn(); }, delayMs);
-		};
-		sprite.el.addEventListener('click', vanish);
-		sprite.el.addEventListener('touchend', vanish, { passive:false });
-	}
-	// Groovy: open Instagram on click/tap instead of vanishing
-	if(groovySprite){
-		const openInsta = (e)=>{
-			if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
-			window.open('https://www.instagram.com/malenkoste', '_blank', 'noopener');
-		};
-		groovySprite.el.addEventListener('click', openInsta);
-		groovySprite.el.addEventListener('touchend', openInsta, { passive:false });
-	}
-
-	// Poppies acts as a toggle for all icons pause/resume
-	if(poppiesSprite){
+	if(poppies){
 		const reason='user-toggle';
-		const toggle=(e)=>{
-			if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
-			if(!window.bounceController) return;
-			if(window.bounceController.has && window.bounceController.has(reason)){
-				window.bounceController.resume(reason);
-			}else{
-				window.bounceController.pause(reason);
-			}
+		const toggle=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
+			if(window.bounceController.has(reason)) window.bounceController.resume(reason); else window.bounceController.pause(reason);
 		};
-		poppiesSprite.el.addEventListener('click', toggle);
-		poppiesSprite.el.addEventListener('touchend', toggle, { passive:false });
+		poppies.el.addEventListener('click', toggle);
+		poppies.el.addEventListener('touchend', toggle, { passive:false });
 	}
 
-	let last = performance.now();
-	let paused=false; let rafId=null; const pauseReasons=new Set();
+	let last=performance.now();
+	let rafId=null; let paused=false; const pauseReasons=new Set();
 	function step(now){
-		const dt = (now - last) / 1000; last = now;
-		if(paused){ rafId = requestAnimationFrame(step); return; }
-		const { w:vw, h:vh } = getViewport();
-		// Sample overlay rect once per frame for collision
-		const overlayR = getOverlayRect();
-		for(const s of sprites){
-			if(!s || !s.active) continue;
-			// tiny random jitter so paths diverge
-			s.vx += (Math.random()*2-1) * s.jitter * dt;
-			s.vy += (Math.random()*2-1) * s.jitter * dt;
-			// move
-			const tdt = dt * s.timeScale;
-			s.x += s.vx * tdt; s.y += s.vy * tdt;
-			// size is cached; updated on resize/reclamp and on respawn
-			// collisions with viewport edges
-			let hit=false;
-			if(s.x <= 0){ s.x=0; s.vx=Math.abs(s.vx); hit=true; }
-			if(s.x + s.w >= vw){ s.x=Math.max(0, vw - s.w); s.vx=-Math.abs(s.vx); hit=true; }
-			if(s.y <= 0){ s.y=0; s.vy=Math.abs(s.vy); hit=true; }
-			if(s.y + s.h >= vh){ s.y=Math.max(0, vh - s.h); s.vy=-Math.abs(s.vy); hit=true; }
-			// collision with cursor overlay text (if visible)
-			if(overlayR){
-				const rL = s.x, rT = s.y, rR = s.x + s.w, rB = s.y + s.h;
-				const overlap = !(rR < overlayR.l || rL > overlayR.r || rB < overlayR.t || rT > overlayR.b);
-				if(overlap){
-					const dxLeft = rR - overlayR.l;   // move left by this
-					const dxRight = overlayR.r - rL;   // move right by this
-					const dyUp = rB - overlayR.t;      // move up by this
-					const dyDown = overlayR.b - rT;    // move down by this
-					// pick minimal penetration axis
-					const minPen = Math.min(dxLeft, dxRight, dyUp, dyDown);
-					const eps = 1;
-					if(minPen === dxLeft){ s.x -= (dxLeft + eps); s.vx = -Math.abs(s.vx); hit = true; }
-					else if(minPen === dxRight){ s.x += (dxRight + eps); s.vx = Math.abs(s.vx); hit = true; }
-					else if(minPen === dyUp){ s.y -= (dyUp + eps); s.vy = -Math.abs(s.vy); hit = true; }
-					else { s.y += (dyDown + eps); s.vy = Math.abs(s.vy); hit = true; }
-					// Re-clamp to viewport after resolution
-					s.x = clamp(s.x, 0, Math.max(0, vw - s.w));
-					s.y = clamp(s.y, 0, Math.max(0, vh - s.h));
-				}
-			}
-			s.el.style.transform = `translate3d(${s.x}px, ${s.y}px, 0)`;
-			if(hit && s.wrap){ s.wrap.classList.add('squash'); setTimeout(()=>s.wrap.classList.remove('squash'), 160); }
+		const dt=(now-last)/1000; last=now;
+		if(!paused){
+			const { w:vw, h:vh } = getViewport();
+			for(const s of sprites){ if(!s.active) continue; const tdt=dt*s.timeScale; s.vx += (Math.random()*2-1)*s.jitter*dt; s.vy += (Math.random()*2-1)*s.jitter*dt; s.x += s.vx*tdt; s.y += s.vy*tdt; let hit=false; if(s.x<=0){s.x=0; s.vx=Math.abs(s.vx); hit=true;} if(s.x+s.w>=vw){ s.x=Math.max(0,vw-s.w); s.vx=-Math.abs(s.vx); hit=true;} if(s.y<=0){ s.y=0; s.vy=Math.abs(s.vy); hit=true;} if(s.y+s.h>=vh){ s.y=Math.max(0,vh-s.h); s.vy=-Math.abs(s.vy); hit=true;} s.el.style.transform=`translate3d(${s.x}px,${s.y}px,0)`; if(hit){ const wrap=s.el.querySelector('.squashwrap'); if(wrap){ wrap.classList.add('squash'); setTimeout(()=>wrap.classList.remove('squash'),160); } } }
 		}
-		rafId = requestAnimationFrame(step);
+		rafId=requestAnimationFrame(step);
 	}
+	requestAnimationFrame((t)=>{ last=t; rafId=requestAnimationFrame(step); });
 
-	function reclampAll(){
-		const { w:vw, h:vh } = getViewport();
-		for(const s of sprites){ if(!s) continue; const m=measure(s.el); s.w=m.w; s.h=m.h; s.x=clamp(s.x,0,Math.max(0,vw-s.w)); s.y=clamp(s.y,0,Math.max(0,vh-s.h)); s.el.style.transform=`translate3d(${s.x}px, ${s.y}px, 0)`; }
-	}
-	if(window.visualViewport){ visualViewport.addEventListener('resize',reclampAll); visualViewport.addEventListener('scroll',reclampAll); }
-	window.addEventListener('resize',reclampAll);
-	window.addEventListener('orientationchange',reclampAll);
-
-	if(sprites.length){ requestAnimationFrame((t)=>{ last=t; rafId=requestAnimationFrame(step); }); }
-
-	// expose pause/resume controls with reasons
-	function applyPaused(){ const was=paused; paused = pauseReasons.size>0; if(paused!==was){ if(paused) document.body.classList.add('icons-paused'); else document.body.classList.remove('icons-paused'); } }
-	window.bounceController = {
+	function applyPaused(){ const p = pauseReasons.size>0; if(p!==paused){ paused=p; if(paused) document.body.classList.add('icons-paused'); else document.body.classList.remove('icons-paused'); } }
+	window.bounceController={
 		pause(reason='generic'){ pauseReasons.add(reason); applyPaused(); },
 		resume(reason='generic'){ pauseReasons.delete(reason); applyPaused(); },
 		isPaused(){ return paused; },
 		has(reason){ return pauseReasons.has(reason); }
 	};
+
+	function reclamp(){ const { w:vw, h:vh } = getViewport(); for(const s of sprites){ s.x=clamp(s.x,0,Math.max(0,vw-s.w)); s.y=clamp(s.y,0,Math.max(0,vh-s.h)); s.el.style.transform=`translate3d(${s.x}px,${s.y}px,0)`; } }
+	window.addEventListener('resize',reclamp); window.addEventListener('orientationchange',reclamp);
 })();
 
 // Mosaic renderer removed
@@ -930,34 +661,10 @@ window.addEventListener('load',()=>{ artworkTitle.init(); portfolioLoader.show()
 	};
 })();
 
-// (fun-bouncer movement handled by unified manager; vanish/respawn wired there)
+// Removed fun-bouncer system
 
 // Third bouncing icon popover and "watch it" action (movement via unified manager)
-(function(){
-	const btn=document.getElementById('watch-button');
-	const pop=document.getElementById('watch-popover');
-	const watchBtn=document.getElementById('watch-video-button');
-	if(!btn||!pop||!watchBtn) return;
-	const mobileOverlay=document.getElementById('mobile-touch-area');
-	function positionPop(){
-		const rect=btn.getBoundingClientRect(); const margin=10,gap=8;
-		let popW=pop.offsetWidth||Math.min(window.innerWidth*0.9,420);
-		let popH=pop.offsetHeight||120; let left=rect.left+rect.width/2-popW/2;
-		const spaceBelow=window.innerHeight-rect.bottom-gap; const spaceAbove=rect.top-gap;
-		let top=(spaceBelow>=popH||spaceBelow>=spaceAbove)?(rect.bottom+gap):(rect.top-gap-popH);
-		left=Math.max(margin,Math.min(window.innerWidth-popW-margin,left));
-		top=Math.max(margin,Math.min(window.innerHeight-popH-margin,top));
-		pop.style.left=left+'px'; pop.style.top=top+'px'; pop.style.transform='none';
-	}
-	function show(){ pop.style.display='block'; btn.setAttribute('aria-expanded','true'); if(mobileOverlay) mobileOverlay.style.display='none'; positionPop(); }
-	function hide(){ pop.style.display='none'; btn.setAttribute('aria-expanded','false'); if(mobileOverlay) mobileOverlay.style.display=''; }
-	btn.addEventListener('click',e=>{ e.stopPropagation(); if(pop.style.display==='block') hide(); else show(); });
-	document.addEventListener('pointerdown',e=>{ if(pop.style.display==='block' && !pop.contains(e.target) && e.target!==btn && !btn.contains(e.target)) hide(); });
-	window.addEventListener('resize',positionPop); window.addEventListener('orientationchange',positionPop);
-	watchBtn.addEventListener('click',()=>{ const url=pop.getAttribute('data-vimeo'); if(url) window.open(url,'_blank','noopener'); });
-	// Escape closes (and restores mobile overlay)
-	document.addEventListener('keydown',e=>{ if(e.key==='Escape' && pop.style.display==='block'){ hide(); } });
-})();
+// Removed watch-button handler
 
 // Landscape overlay controller: pause all animations/audio in mobile landscape
 (function(){

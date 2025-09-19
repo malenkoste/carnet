@@ -5,7 +5,7 @@
 html, body { min-height: 100%; }
 
 body { margin:0; overflow:hidden; background:#f5f1e8 url('../images/background.png') center / cover no-repeat fixed; font-family:'RAMI'; color:#fff; }
-body.cursor-hidden { cursor:none; }
+body.cursor-hidden { cursor:auto; }
 /* Background slideshow */
 #background-slideshow{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
 #background-slideshow .bg-frame{ position:absolute; inset:0; background-position:center; background-repeat:no-repeat; background-size:cover; opacity:0; transition: opacity 8s ease; }
@@ -56,15 +56,20 @@ button, a, input, textarea, select { touch-action: manipulation; }
 
 /* Model-viewer should occupy the same box as images/videos */
 model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height:70vh; display:block; }
+/* Reposition model-viewer progress bar: centered below model */
+/* Minimal tweak: just move default model-viewer progress bar below model */
+@media (max-width:768px){ }
 
-/* Overlay controls for model rotation */
-#model-controls{ position:fixed; inset:0; pointer-events:none; z-index:10002; }
-#model-controls button{ position:absolute; pointer-events:auto; background:rgba(0,0,0,0.5); color:#32ff4f; border:1px solid #2a8800; border-radius:8px; padding:10px 14px; font-family:'GENSCO',sans-serif; font-size:16px; }
-#model-rot-up{ top:12px; left:50%; transform:translateX(-50%); }
-#model-rot-down{ bottom:12px; left:50%; transform:translateX(-50%); }
-#model-rot-left{ left:12px; top:50%; transform:translateY(-50%); }
-#model-rot-right{ right:12px; top:50%; transform:translateY(-50%); }
-#model-controls, #model-controls * { cursor: none !important; }
+/* Model navigation buttons */
+#prev-artwork,#next-artwork{ position:fixed; bottom:18px; z-index:10002; background:rgba(0,0,0,0.55); color:#fff; border:1px solid #fff; border-radius:10px; padding:10px 16px; font-family:'RAMI',serif; font-size:15px; letter-spacing:2px; }
+#prev-artwork{ left:18px; }
+#next-artwork{ right:18px; }
+#prev-artwork:hover,#next-artwork:hover{ background:rgba(255,255,255,0.15); }
+/* Icon variant overrides */
+#prev-artwork.nav-icon-btn,#next-artwork.nav-icon-btn{ width:108px; height:108px; padding:0; background:transparent; border:none; border-radius:0; }
+.nav-icon-btn img{ width:100%; height:100%; display:block; object-fit:contain; pointer-events:none; }
+.nav-icon-btn:hover img{ filter:drop-shadow(0 0 6px rgba(255,216,0,0.6)); }
+#prev-artwork.nav-icon-btn:focus-visible,#next-artwork.nav-icon-btn:focus-visible{ outline:2px solid #ffd800; outline-offset:2px; }
 
 /* Removed mosaic background layer */
 
@@ -130,14 +135,15 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 #contact-button .rotwrap{display:inline-block;animation:spin-360 12s linear infinite;}
 #contact-button .squashwrap{display:inline-block;}
 #contact-button .squashwrap.squash{animation:squash 160ms ease-out;}
-#contact-button, #contact-button * { cursor: none !important; }
+#contact-button, #contact-button * { cursor: auto !important; }
+/* Icon labels removed */
 /* Visual-only extra bouncer */
 #fun-bouncer{position:fixed;top:0;left:0;z-index:10000;background:transparent;border:none;padding:0;margin:0;will-change:transform;}
 #fun-bouncer img{width:54px;height:54px;display:block;opacity:0.9;}
 #fun-bouncer .rotwrap{display:inline-block;animation:spin-360 10s linear infinite;}
 #fun-bouncer .squashwrap{display:inline-block;}
 #fun-bouncer .squashwrap.squash{animation:squash 160ms ease-out;}
-#fun-bouncer, #fun-bouncer * { cursor: none !important; }
+#fun-bouncer, #fun-bouncer * { cursor: auto !important; }
 @keyframes spin-360{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 @keyframes squash{0%{transform:scale(1);}50%{transform:scaleX(0.9) scaleY(1.1);}100%{transform:scale(1);}}
 @keyframes contact-slide{
@@ -146,7 +152,7 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 }
 #contact-popover{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10001;max-width:min(90vw,420px);padding:10px 12px;border-radius:8px;background:#555;color:#fff;font-family:'GENSCO',sans-serif;font-size:13px;line-height:1.25;box-shadow:0 4px 18px rgba(0,0,0,0.25);backdrop-filter:saturate(1) blur(1px);display:none;overflow:hidden;}
 #contact-popover,#contact-form-popover{font-family:'GENSCO',sans-serif;}
-#open-contact-form{font-family:'RAMI',serif;font-size:17.5px;letter-spacing:1px;padding:7.5px 12.5px;border-radius:7.5px;border:1px solid #2a8800;background:transparent;color:#32ff4f;cursor:none !important;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease; text-transform:uppercase;}
+#open-contact-form{font-family:'RAMI',serif;font-size:17.5px;letter-spacing:1px;padding:7.5px 12.5px;border-radius:7.5px;border:1px solid #2a8800;background:transparent;color:#32ff4f;cursor:auto !important;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease; text-transform:uppercase;}
 #open-contact-form:hover,#open-contact-form:focus{filter:brightness(1.12);border-color:#36a300;box-shadow:0 0 0 3px rgba(50,255,79,0.25);} 
 #contact-form-popover{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10001;width:min(90vw,294px);box-sizing:border-box;padding:14px 16px;border-radius:10px;background:#555;color:#32ff4f;font-size:14px;line-height:1.35;box-shadow:0 6px 22px rgba(0,0,0,0.28);backdrop-filter:saturate(1) blur(1px);display:none;overflow:hidden;}
 #contact-form-popover form{display:flex;flex-direction:column;gap:10px;}
@@ -154,9 +160,9 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 #contact-form-popover input::placeholder,#contact-form-popover textarea::placeholder{color:rgba(50,255,79,0.7);} 
 #contact-form-popover input:hover,#contact-form-popover input:focus,#contact-form-popover textarea:hover,#contact-form-popover textarea:focus{filter:brightness(1.08);border-color:#36a300;background:rgba(50,255,79,0.12);box-shadow:0 0 0 3px rgba(50,255,79,0.18);outline:none;}
 #contact-form-popover .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
-#contact-form-popover button{border:1px solid #2a8800;background:transparent;color:#32ff4f;padding:6px 10px;border-radius:6px;cursor:none !important;font-family:'GENSCO',sans-serif;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease;}
+#contact-form-popover button{border:1px solid #2a8800;background:transparent;color:#32ff4f;padding:6px 10px;border-radius:6px;cursor:auto !important;font-family:'GENSCO',sans-serif;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease;}
 #contact-form-popover button:hover,#contact-form-popover button:focus{filter:brightness(1.12);border-color:#36a300;box-shadow:0 0 0 3px rgba(50,255,79,0.25);outline:none;}
-#contact-popover, #contact-popover * , #contact-form-popover, #contact-form-popover * { cursor: none !important; }
+#contact-popover, #contact-popover * , #contact-form-popover, #contact-form-popover * { cursor: auto !important; }
 #contact-form-status{min-height:18px;font-size:12px;opacity:.85;margin-top:4px;}
 
 /* Third bouncing icon and watch popover */
@@ -165,9 +171,9 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 #watch-button .rotwrap{display:inline-block;animation:spin-360 11s linear infinite;}
 #watch-button .squashwrap{display:inline-block;}
 #watch-button .squashwrap.squash{animation:squash 160ms ease-out;}
-#watch-button, #watch-button * { cursor: none !important; }
+#watch-button, #watch-button * { cursor: auto !important; }
 #watch-popover{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:10001;max-width:min(90vw,420px);padding:10px 12px;border-radius:8px;background:#555;color:#fff;font-family:'GENSCO',sans-serif;font-size:13px;line-height:1.25;box-shadow:0 4px 18px rgba(0,0,0,0.25);backdrop-filter:saturate(1) blur(1px);display:none;overflow:hidden;}
-#watch-video-button{font-family:'RAMI',serif;font-size:17.5px;letter-spacing:1px;padding:7.5px 12.5px;border-radius:7.5px;border:1px solid #8c9a00;background:transparent;color:#c3de16;cursor:none !important;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease; text-transform:uppercase;}
+#watch-video-button{font-family:'RAMI',serif;font-size:17.5px;letter-spacing:1px;padding:7.5px 12.5px;border-radius:7.5px;border:1px solid #8c9a00;background:transparent;color:#c3de16;cursor:auto !important;transition:filter .15s ease, border-color .15s ease, box-shadow .15s ease; text-transform:uppercase;}
 #watch-video-button:hover,#watch-video-button:focus{filter:brightness(1.12);border-color:#a6b300;box-shadow:0 0 0 3px rgba(230,255,77,0.25);} 
 
 /* Fourth and fifth bouncing icons */
@@ -177,7 +183,7 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 #groovy-bouncer .rotwrap,#poppies-bouncer .rotwrap{display:inline-block;animation:spin-360 9s linear infinite;}
 #groovy-bouncer .squashwrap,#poppies-bouncer .squashwrap{display:inline-block;}
 #groovy-bouncer .squashwrap.squash,#poppies-bouncer .squashwrap.squash{animation:squash 160ms ease-out;}
-#groovy-bouncer, #groovy-bouncer *, #poppies-bouncer, #poppies-bouncer * { cursor: none !important; }
+#groovy-bouncer, #groovy-bouncer *, #poppies-bouncer, #poppies-bouncer * { cursor: auto !important; }
 
 /* Make groovypills smaller (half size) */
 #groovy-bouncer img{ width:60px; height:60px; }
@@ -270,9 +276,18 @@ body.landscape-paused #custom-cursor { animation-play-state: paused !important; 
 /* Hide artwork title and description (meta) entirely */
 #artwork-title, #artwork-meta { display: none !important; }
 
-/* Temporarily disable specific bouncing icons (easy to re-enable by removing this block) */
-/* fun-bouncer (extra visual icon) and prayerbeads (watch-button) */
-#fun-bouncer,
-#watch-button {
-  display: none !important;
-}
+/* (icons all enabled) */
+
+/* Top icon row (non-model pages) */
+/* Global top icon row */
+.top-icon-row { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:10005; display:flex; gap:42px; align-items:center; }
+.top-icon-row button { position:static !important; top:auto !important; left:auto !important; margin:0; }
+.top-icon-row .rotwrap { display:inline-block; animation:spin-360 12s linear infinite; }
+.top-icon-row .rotwrap.slow { animation-duration:14s; }
+.top-icon-row .rotwrap.medium { animation-duration:11s; }
+.top-icon-row .rotwrap.fast { animation-duration:8s; }
+/* Remove bouncing motion for row icons */
+body[data-mode="images"] #watch-button,
+body[data-mode="images"] #fun-bouncer,
+body[data-mode="animations"] #watch-button,
+body[data-mode="animations"] #fun-bouncer { transition:none; }

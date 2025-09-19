@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>Images – Livre d'Ezra</title>
+  <link rel="icon" type="image/png" href="assets/images/favicon.png"/>
+  <link rel="stylesheet" href="assets/styles/main.css"/>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <script nomodule src="https://unpkg.com/@google/model-viewer/dist/model-viewer-legacy.js"></script>
+</head>
+<body data-mode="images">
+  <div id="portfolio-loading">
+    <video id="portfolio-loading-video" muted autoplay loop playsinline>
+      <source src="assets/videos/transition.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div id="background-slideshow" aria-hidden="true">
+    <div class="bg-frame" data-frame="0"></div>
+    <div class="bg-frame" data-frame="1"></div>
+  </div>
+  <div id="portfolio-content" style="display:none;">
+    <div id="mobile-touch-area"></div>
+    <div id="artwork-display">
+      <img id="artwork-media" src="" alt="" style="opacity:0;" />
+    </div>
+    <!-- Icons -->
+    <button id="contact-button" aria-label="Show contact info" aria-controls="contact-popover" aria-expanded="false">
+      <span class="rotwrap"><span class="squashwrap"><img src="assets/images/contacticon.png"/></span></span>
+    </button>
+    <div class="top-icon-row">
+      <button id="contact-button" aria-label="Show contact info" aria-controls="contact-popover" aria-expanded="false">
+        <span class="rotwrap medium"><span class="squashwrap"><img src="assets/images/contacticon.png"/></span></span>
+      </button>
+      <button id="watch-button" aria-label="Open watch popover" aria-controls="watch-popover" aria-expanded="false">
+        <span class="rotwrap slow"><span class="squashwrap"><img src="assets/images/prayerbeads.png"/></span></span>
+      </button>
+      <button id="fun-bouncer" aria-hidden="true" tabindex="-1">
+        <span class="rotwrap fast"><span class="squashwrap"><img src="assets/images/fun-bouncer.png"/></span></span>
+      </button>
+    </div>
+    <div id="watch-popover" role="dialog" aria-modal="false" aria-labelledby="watch-popover-title" data-vimeo="https://vimeo.com/1103585979">
+      <div id="watch-popover-title" class="sr-only">Watch video</div>
+      <div style="margin-top:8px"><button id="watch-video-button" type="button">WATCH</button></div>
+    </div>
+    <div id="contact-popover" role="dialog" aria-modal="false" aria-labelledby="contact-popover-title">
+      <div id="contact-popover-title" class="sr-only">Contact</div>
+      <div style="margin-top:8px"><button id="open-contact-form" type="button">SEND MESSAGE</button></div>
+    </div>
+    <div id="contact-form-popover" role="dialog" aria-modal="false" aria-labelledby="contact-form-title" data-endpoint="https://formspree.io/f/movnqldp">
+      <div id="contact-form-title" class="sr-only">Send a message</div>
+      <form id="contact-form">
+        <label> Message <textarea name="message" required rows="4" placeholder="Write your message…"></textarea></label>
+        <div class="form-actions">
+          <button type="submit">Send</button>
+          <button type="button" id="close-contact-form">Cancel</button>
+        </div>
+        <div id="contact-form-status" aria-live="polite"></div>
+      </form>
+    </div>
+    <button id="groovy-bouncer" aria-hidden="true" tabindex="-1" data-frames="assets/images/Untitled-1.png,assets/images/Untitled-2.png,assets/images/Untitled-3.png,assets/images/Untitled-4.png,assets/images/Untitled-5.png,assets/images/Untitled-6.png">
+      <span class="rotwrap"><span class="squashwrap"><img src="assets/images/Untitled-1.png" alt=""/></span></span>
+    </button>
+    <button id="poppies-bouncer" aria-hidden="true" tabindex="-1">
+      <span class="rotwrap"><span class="squashwrap"><img src="assets/images/poppies.png" alt=""/></span></span>
+    </button>
+  </div>
+  <div id="custom-cursor" aria-hidden="true"></div>
+  <div id="landscape-lock" aria-hidden="true"><div class="landscape-lock-inner">PLEASE ROTATE TO PORTRAIT MODE</div></div>
+  <script src="assets/scripts/main.js" defer></script>
+</body>
+</html>
