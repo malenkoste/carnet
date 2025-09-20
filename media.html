@@ -31,6 +31,10 @@
     <button id="contact-button" aria-label="Contact / Send message">
       <span class="rotwrap medium"><span class="squashwrap"><img src="assets/images/contacticon.png"/></span></span>
     </button>
+    <!-- Credits rotating icon -->
+    <button id="credits-button" aria-label="Credits / About">
+      <span class="rotwrap slow"><span class="squashwrap"><img src="assets/images/credits.png" alt=""/></span></span>
+    </button>
     <button id="groovy-bouncer" aria-hidden="true" tabindex="-1">
       <span class="rotwrap"><span class="squashwrap"><img src="assets/images/Untitled-1.png" alt=""/></span></span>
     </button>
@@ -50,6 +54,18 @@
         </div>
         <div id="contact-form-status" aria-live="polite"></div>
       </form>
+    </div>
+    <!-- Credits overlay (content loaded dynamically from assets/credits/credits.html) -->
+    <div id="credits-overlay" aria-hidden="true" role="dialog" aria-label="Credits">
+      <div class="credits-inner">
+        <button id="close-credits" aria-label="Close credits">×</button>
+        <div class="credits-scroll">
+          <div class="credits-content" data-external-credits></div>
+        </div>
+        <div class="credits-icon-container" aria-hidden="true">
+          <img src="assets/images/copmaicon.png" alt="" />
+        </div>
+      </div>
     </div>
   </div>
   <div id="custom-cursor" aria-hidden="true"></div>

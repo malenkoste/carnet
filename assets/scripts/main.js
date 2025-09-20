@@ -11,8 +11,8 @@ const audioSystem={backgroundAudio:null,clickAudio:null,audioInitialized:false,_
 		try{
 			if(this.audioInitialized) return;
 			this.backgroundAudio=new Audio('assets/audio/background.mp3');
-			this.backgroundAudio.loop=true; this.backgroundAudio.volume=0.35;
-			this.clickAudio=new Audio('assets/audio/click.mp3'); this.clickAudio.volume=0.198;
+			this.backgroundAudio.loop=true; this.backgroundAudio.volume=0.88; // raised per request
+			this.clickAudio=new Audio('assets/audio/click.mp3'); this.clickAudio.volume=1.0; // full volume
 			this.audioInitialized=true;
 		}catch(e){}
 	},
@@ -28,8 +28,35 @@ const audioSystem={backgroundAudio:null,clickAudio:null,audioInitialized:false,_
 	resumeBackground(){ this.startBackgroundMusic(); },
 	playClickSound(){ if(this.clickAudio&&this.audioInitialized){ try{ this.clickAudio.currentTime=0; const p=this.clickAudio.play(); if(p) p.catch(()=>{}); }catch(e){} } }
 };
-function initializeAllAudio(){audioSystem.init(); audioSystem.startBackgroundMusic();}
-['click','keydown','touchstart'].forEach(evt=>document.addEventListener(evt,initializeAllAudio,{once:true}));
+function initializeAllAudioOnce(){
+	audioSystem.init();
+	audioSystem.startBackgroundMusic().then(()=>{
+		// If playback succeeded, remove temporary listeners
+		removeDeferredAudioListeners();
+	});
+}
+function deferredAudioListener(){
+	// Attempt init each user interaction until backgroundAudio is playing
+	if(!audioSystem.audioInitialized || (audioSystem.backgroundAudio && audioSystem.backgroundAudio.paused)){
+		audioSystem.init();
+		audioSystem.startBackgroundMusic().then(()=>{
+			if(audioSystem.backgroundAudio && !audioSystem.backgroundAudio.paused){
+				removeDeferredAudioListeners();
+			}
+		});
+	} else {
+		removeDeferredAudioListeners();
+	}
+}
+function removeDeferredAudioListeners(){
+	['click','keydown','touchstart','pointerdown','mousedown'].forEach(evt=>{
+		document.removeEventListener(evt,deferredAudioListener,true);
+	});
+}
+// Attach (capture phase) so we catch very first interaction even if stopped
+['click','keydown','touchstart','pointerdown','mousedown'].forEach(evt=>document.addEventListener(evt,deferredAudioListener,true));
+// Also try an automatic attempt after load (may succeed if policy allows)
+setTimeout(initializeAllAudioOnce, 200);
 
 // Overlay removed
 
@@ -46,27 +73,17 @@ const artworkManager={
 	initialPreloadTarget:0,loadedCount:0,
 	async initFromManifest(){
 		try{
-			const res=await fetch('assets/scripts/artworks_models.json',{cache:'no-store'});
-			this.manifest=await res.json();
-			let allFiles=this.manifest.map((m,idx)=>{
-				const ext=m.file.split('.').pop();
-				const type=['mp4','webm','mov'].includes(ext)?'video':(['glb','gltf','usdz'].includes(ext)?'model':'image');
-				return { url:`assets/artwork/${m.file}`, type, name:m.file, index:idx+1, id:idx, meta:m };
-			});
-			// Filter by page mode (models | animations | images)
-			const mode = (document.body && (document.body.dataset.mode||document.body.getAttribute('data-mode'))) || '';
-			let desiredType=null;
-			if(mode==='models') desiredType='model';
-			else if(mode==='animations') desiredType='video';
-			else if(mode==='images') desiredType='image';
-			this.mediaFiles = desiredType ? allFiles.filter(f=>f.type===desiredType) : allFiles;
-			if(!this.mediaFiles.length){ this.mediaFiles = allFiles; }
-			if(this.mediaFiles.length){
-				this.initialPreloadTarget=Math.min(this.PRELOAD_AHEAD+1,this.mediaFiles.length);
-				this.preloadAround(this.currentIndex);
-				await this.showInitialArtwork();
-			}
-		}catch(e){ console.warn('Manifest load failed',e); }
+			const manifestRes=await fetch('assets/scripts/artworks_models.json',{cache:'no-store'});
+			if(!manifestRes.ok) throw new Error('models manifest missing');
+			this.manifest=await manifestRes.json();
+			const basePath='assets/artwork/'; // original artwork directory
+			let allFiles=this.manifest.map((m,idx)=>({ url:`${basePath}${m.file}`, type:'model', name:m.file, index:idx+1, id:idx, meta:null }));
+			this.mediaFiles=allFiles;
+			if(!this.mediaFiles.length){ console.warn('No models listed in artworks_models.json'); return; }
+			this.initialPreloadTarget=Math.min(this.PRELOAD_AHEAD+1,this.mediaFiles.length);
+			this.preloadAround(this.currentIndex);
+			await this.showInitialArtwork();
+		}catch(e){ console.warn('Model manifest load failed',e); }
 	},
 	attemptReady(){
 		if(!this.initialReadyMarked && this.initialArtworkDisplayed && this.loadedCount>=this.initialPreloadTarget){
@@ -107,6 +124,13 @@ const artworkManager={
 	async showInitialArtwork(){
 		if(this.initialArtworkInserted) return;
 		const mediaFile=this.mediaFiles[0];
+		const indicator=document.getElementById('model-loading-indicator');
+		let hideIndicator=null; let safetyTimer=null;
+		if(mediaFile.type==='model' && indicator){
+			indicator.classList.add('active');
+			hideIndicator=()=>{ if(!indicator) return; indicator.classList.remove('active'); if(safetyTimer){ clearTimeout(safetyTimer); safetyTimer=null; } };
+			safetyTimer=setTimeout(hideIndicator,5000); // safety fallback reduced to 5s
+		}
 		await this.preloadMedia(mediaFile).catch(()=>{});
 		let preloadedEl=this._prepareIncoming(mediaFile,0);
 		if(mediaFile.type==='video'){
@@ -122,6 +146,13 @@ const artworkManager={
 		while(display.firstChild) display.removeChild(display.firstChild);
 		display.appendChild(preloadedEl);
 		// Mosaic removed
+		if(mediaFile.type==='model' && hideIndicator){
+			const finalize=()=>{ hideIndicator(); };
+			preloadedEl.addEventListener('load',finalize,{once:true});
+			preloadedEl.addEventListener('slotchange',finalize,{once:true});
+			// Hard fallback after first frame of animation (5s max)
+			setTimeout(()=>{ if(indicator && indicator.classList.contains('active')) finalize(); },5000);
+		}
 		requestAnimationFrame(()=>{ void preloadedEl.offsetWidth; preloadedEl.classList.add('wavy-in'); if(mediaFile.type==='video'){ try{preloadedEl.play().catch(()=>{});}catch(e){} } });
 		this.currentIndex=0;
 		currentArtworkName=mediaFile.name;
@@ -140,6 +171,13 @@ const artworkManager={
 		const outgoing=document.getElementById('artwork-media');
 		const nextIndex=(this.currentIndex+1)%this.mediaFiles.length;
 		const mediaFile=this.mediaFiles[nextIndex];
+		const indicator=document.getElementById('model-loading-indicator');
+		let hideIndicator=null; let safetyTimer=null;
+		if(mediaFile.type==='model' && indicator){
+			indicator.classList.add('active');
+			hideIndicator=()=>{ if(!indicator) return; indicator.classList.remove('active'); if(safetyTimer){ clearTimeout(safetyTimer); safetyTimer=null; } };
+			safetyTimer=setTimeout(hideIndicator,5000); // reduced to 5s
+		}
 		this.preloadAround(nextIndex);
 		const incomingPromise=this.preloadMedia(mediaFile).catch(()=>null);
 		const outgoingPromise=new Promise(r=>{
@@ -169,6 +207,12 @@ const artworkManager={
 		}
 		display.appendChild(preloadedEl);
 		// Mosaic removed
+		if(mediaFile.type==='model' && hideIndicator){
+			const finalize=()=>{ hideIndicator(); };
+			preloadedEl.addEventListener('load',finalize,{once:true});
+			preloadedEl.addEventListener('slotchange',finalize,{once:true});
+			setTimeout(()=>{ if(indicator && indicator.classList.contains('active')) finalize(); },5000);
+		}
 		requestAnimationFrame(()=>{
 			void preloadedEl.offsetWidth; // force reflow
 			preloadedEl.classList.add('wavy-in');
@@ -191,6 +235,13 @@ const artworkManager={
 		const outgoing=document.getElementById('artwork-media');
 		const prevIndex=(this.currentIndex - 1 + this.mediaFiles.length)%this.mediaFiles.length;
 		const mediaFile=this.mediaFiles[prevIndex];
+		const indicator=document.getElementById('model-loading-indicator');
+		let hideIndicator=null; let safetyTimer=null;
+		if(mediaFile.type==='model' && indicator){
+			indicator.classList.add('active');
+			hideIndicator=()=>{ if(!indicator) return; indicator.classList.remove('active'); if(safetyTimer){ clearTimeout(safetyTimer); safetyTimer=null; } };
+			safetyTimer=setTimeout(hideIndicator,5000); // reduced to 5s
+		}
 		this.preloadAround(prevIndex);
 		const incomingPromise=this.preloadMedia(mediaFile).catch(()=>null);
 		const outgoingPromise=new Promise(r=>{
@@ -219,6 +270,12 @@ const artworkManager={
 		}
 		display.appendChild(preloadedEl);
 		// Mosaic removed
+		if(mediaFile.type==='model' && hideIndicator){
+			const finalize=()=>{ hideIndicator(); };
+			preloadedEl.addEventListener('load',finalize,{once:true});
+			preloadedEl.addEventListener('slotchange',finalize,{once:true});
+			setTimeout(()=>{ if(indicator && indicator.classList.contains('active')) finalize(); },5000);
+		}
 		requestAnimationFrame(()=>{
 			void preloadedEl.offsetWidth;
 			preloadedEl.classList.add('wavy-in');
@@ -595,24 +652,7 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); if(window.CommonIni
 	window.addEventListener('resize',apply); window.addEventListener('orientationchange',apply); apply();
 })();
 
-// Animated custom cursor setup (uses 8 separate PNG frames)
-(function(){
-	const prefersCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches; if(prefersCoarse) return;
-	const cursorEl=document.getElementById('custom-cursor'); if(!cursorEl) return;
-	const frameUrls=[1,2,3,4,5,6,7,8].map(i=>`assets/cursors/cursor${i}.png`);
-	let loaded=0; let ready=false; let frameIndex=0; const hotspotX=32,hotspotY=0; const frameInterval=60; // ~16fps
-	let timerId=null; let paused=false;
-	frameUrls.forEach(u=>{ const img=new Image(); img.onload=done; img.onerror=done; img.src=u; function done(){ if(++loaded===frameUrls.length){ start(); } }});
-	function start(){ if(ready) return; ready=true; document.body.classList.add('cursor-hidden'); cursorEl.classList.add('animating'); animate(); }
-	function animate(){ if(paused) return; cursorEl.style.backgroundImage=`url('${frameUrls[frameIndex]}')`; frameIndex=(frameIndex+1)%frameUrls.length; timerId=setTimeout(animate,frameInterval); }
-	window.addEventListener('pointermove',e=>{ if(!ready) return; cursorEl.style.transform=`translate3d(${e.clientX-hotspotX}px,${e.clientY-hotspotY}px,0)`; },{passive:true});
-	setTimeout(()=>{ if(!ready) start(); },1200); // fallback activation
-	window.cursorController={
-		pause(){ paused=true; if(timerId){ clearTimeout(timerId); timerId=null; } },
-		resume(){ if(!ready) return; if(!paused) return; paused=false; if(!timerId) animate(); },
-		isPaused(){ return paused; }
-	};
-})();
+// Animated custom cursor now initialized via common.js
 
 // Removed fun-bouncer system
 

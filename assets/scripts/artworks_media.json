@@ -1,7 +1,7 @@
 [
-  { "file": "artwork2.mp4", "title": "BOTTOM", "alt": "Video artwork 2: BOTTOM", "meta": "Digital drawing/animation" },
-  { "file": "artwork4.mp4", "title": "JUSTINE", "alt": "Artwork 4: JUSTINE", "meta": "Digital drawing" },
-  { "file": "artwork6.mp4", "title": "NIGHT SHIFT", "alt": "Artwork 6: NIGHT SHIFT", "meta": "Digital drawing" },
-  { "file": "artwork8.mp4", "title": "THIS MORTAL COIL", "alt": "Artwork 8: THIS MORTAL COIL", "meta": "Digital drawing" },
-  { "file": "artwork9.mp4", "title": "ESCARGOT", "alt": "Artwork 9: ESCARGOT", "meta": "Digital drawing" }
+  { "file": "media1.mp4", "title": "BOTTOM", "alt": "Video artwork 2: BOTTOM", "meta": "Digital drawing/animation" },
+  { "file": "media2.mp4", "title": "JUSTINE", "alt": "Artwork 4: JUSTINE", "meta": "Digital drawing" },
+  { "file": "media3.mp4", "title": "NIGHT SHIFT", "alt": "Artwork 6: NIGHT SHIFT", "meta": "Digital drawing" },
+  { "file": "media4.mp4", "title": "THIS MORTAL COIL", "alt": "Artwork 8: THIS MORTAL COIL", "meta": "Digital drawing" },
+  { "file": "media5.mp4", "title": "ESCARGOT", "alt": "Artwork 9: ESCARGOT", "meta": "Digital drawing" }
 ]

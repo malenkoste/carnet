@@ -8,6 +8,10 @@
       {id:'contact-form',visible:true},
       {id:'contact-form-status',visible:true},
       {id:'close-contact-form',visible:true},
+  // Credits overlay / button elements treated as protected UI regions too
+  {id:'credits-button',always:true},
+  {id:'credits-overlay',visible:true},
+  {id:'close-credits',visible:true},
     ];
     for(const e of entries){
       const el=document.getElementById(e.id); if(!el) continue;
@@ -109,4 +113,66 @@
 
   // Unified init (call from each page after DOM ready)
   global.CommonInit={ init(){ initContactButton(); initContactForm(); initBackgroundSlideshow(); blockMobileZoom(); }};
+  // Optional animated custom cursor (extracted from main.js) for desktop
+  function initCustomCursor(){
+    if(global._customCursorInitialized) return; global._customCursorInitialized=true;
+    const prefersCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches; if(prefersCoarse) return;
+    const cursorEl=document.getElementById('custom-cursor'); if(!cursorEl) return;
+    const frameUrls=[1,2,3,4,5,6,7,8].map(i=>`assets/cursors/cursor${i}.png`);
+    let loaded=0; let ready=false; let frameIndex=0; const hotspotX=32, hotspotY=0; const frameInterval=60; let timerId=null; let paused=false;
+    function start(){ if(ready) return; ready=true; document.body.classList.add('cursor-hidden'); cursorEl.classList.add('animating'); animate(); }
+    function animate(){ if(paused) return; cursorEl.style.backgroundImage=`url('${frameUrls[frameIndex]}')`; frameIndex=(frameIndex+1)%frameUrls.length; timerId=setTimeout(animate,frameInterval); }
+    frameUrls.forEach(u=>{ const img=new Image(); img.onload=done; img.onerror=done; img.src=u; function done(){ if(++loaded===frameUrls.length){ start(); } }});
+    window.addEventListener('pointermove',e=>{ if(!ready) return; cursorEl.style.transform=`translate3d(${e.clientX-hotspotX}px,${e.clientY-hotspotY}px,0)`; },{passive:true});
+    setTimeout(()=>{ if(!ready) start(); },1200);
+    global.cursorController={ pause(){ paused=true; if(timerId){ clearTimeout(timerId); timerId=null; } }, resume(){ if(!ready) return; if(!paused) return; paused=false; if(!timerId) animate(); }, isPaused(){ return paused; } };
+  }
+  // Extend CommonInit to include cursor
+  const prevInit = global.CommonInit.init;
+  global.CommonInit.init = function(){ prevInit(); initCustomCursor(); };
+
+  // ===================== CREDITS OVERLAY =====================
+  function initCredits(){
+    if(global._creditsInit) return; global._creditsInit=true;
+    const btn=document.getElementById('credits-button');
+    const overlay=document.getElementById('credits-overlay');
+    if(!btn || !overlay) return; // nothing to do
+  const inner=overlay.querySelector('.credits-scroll');
+  const content=overlay.querySelector('.credits-content');
+    const externalHolder = overlay.querySelector('[data-external-credits]');
+  // Load external credits file (static content now)
+  let contentReady=false;
+    (async function loadExternal(){
+      if(!externalHolder) return;
+      try{
+        const res = await fetch('assets/credits/credits.html',{cache:'no-store'});
+        if(res.ok){
+          const html = await res.text();
+          externalHolder.innerHTML = html;
+          const yearSpan = externalHolder.querySelector('[data-year]');
+          if(yearSpan) yearSpan.textContent = new Date().getFullYear();
+          // Previously used for scrolling restructure; now left flat/static
+        } else {
+          externalHolder.innerHTML = '<p>Credits unavailable.</p>';
+        }
+      }catch(_){ externalHolder.innerHTML = '<p>Credits unavailable.</p>'; }
+      contentReady=true;
+    })();
+    const closeBtn=overlay.querySelector('#close-credits');
+    function open(){ overlay.style.display='flex'; overlay.setAttribute('aria-hidden','false'); }
+    function close(){ overlay.style.display='none'; overlay.setAttribute('aria-hidden','true'); }
+    btn.addEventListener('click',e=>{ e.stopPropagation(); if(overlay.style.display==='flex') close(); else open(); });
+    btn.addEventListener('touchend',e=>{ e.stopPropagation(); e.preventDefault(); if(overlay.style.display==='flex') close(); else open(); },{passive:false});
+    closeBtn && closeBtn.addEventListener('click',e=>{ e.stopPropagation(); close(); });
+    document.addEventListener('pointerdown',e=>{ if(!overlay || overlay.style.display!=='flex') return; if(overlay===e.target) close(); });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape' && overlay.style.display==='flex') close(); });
+    // Pause auto-scroll when user hovers / touches inside (desktop accessibility)
+  // Removed hover pause so scrolling always continues while open
+    // Mobile touch drag to scroll manually; we don't implement custom inertia, just allow default scroll on inner
+    // Provide public controller if needed elsewhere
+  global.creditsController={ open, close, isOpen:()=>overlay.style.display==='flex' };
+  }
+  // Extend again to include credits
+  const prevInit2 = global.CommonInit.init;
+  global.CommonInit.init = function(){ prevInit2(); initCredits(); };
 })(window);

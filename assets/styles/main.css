@@ -6,6 +6,9 @@ html, body { min-height: 100%; }
 
 body { margin:0; overflow:hidden; background:#f5f1e8 url('../images/background.png') center / cover no-repeat fixed; font-family:'RAMI'; color:#fff; }
 body.cursor-hidden { cursor:auto; }
+/* Model loading indicator */
+#model-loading-indicator { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'RAMI',serif; font-size:48px; letter-spacing:6px; color:#32ff6a; text-shadow:0 0 8px rgba(50,255,106,0.75),0 0 18px rgba(50,255,106,0.4); z-index:1200; pointer-events:none; opacity:0; mix-blend-mode:screen; transition:opacity .45s ease; }
+#model-loading-indicator.active { opacity:1; }
 /* Background slideshow */
 #background-slideshow{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
 #background-slideshow .bg-frame{ position:absolute; inset:0; background-position:center; background-repeat:no-repeat; background-size:cover; opacity:0; transition: opacity 8s ease; }
@@ -121,12 +124,12 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 
 @keyframes title-spectrum {
   /* Updated: include lime green and black; remove yellow; cooler cycle with lime, cyan, blue, violet */
-  0%   { color:#000000; text-shadow:0 0 6px rgba(0,0,0,0.6); }
+  0%   { color:#981fa6; text-shadow:0 0 6px rgba(0,0,0,0.6); }
   20%  { color:#32ff4f; text-shadow:0 0 7px rgba(50,255,79,0.50); }   /* lime green */
   40%  { color:#4dd2ff; text-shadow:0 0 7px rgba(77,210,255,0.60); }   /* cyan */
   60%  { color:#475dcc; text-shadow:0 0 7px rgba(102,128,255,0.60); }  /* blue */
   80%  { color:#8c4ee8; text-shadow:0 0 7px rgba(140,102,255,0.60); }  /* violet */
-  100% { color:#000000; text-shadow:0 0 6px rgba(0,0,0,0.6); }
+  100% { color:#6732da; text-shadow:0 0 6px rgba(0,0,0,0.6); }
 }
 
 #bottom-right-text { position:fixed; bottom:20px; right:20px; font-family:'GENSCO' !important; font-size:14px; color:#fff; opacity:.7; pointer-events:none; z-index:9998; text-align:right; line-height:1.2; }
@@ -136,6 +139,14 @@ model-viewer#artwork-media { width:60vw; height:70vh; max-width:60vw; max-height
 #contact-button .squashwrap{display:inline-block;}
 #contact-button .squashwrap.squash{animation:squash 160ms ease-out;}
 #contact-button, #contact-button * { cursor: auto !important; }
+/* Credits button (mirrors contact but positioned left-center) */
+#credits-button{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:10001;background:transparent;border:none;padding:0;margin:0;cursor:pointer;will-change:transform;}
+#credits-button img{width:96px;height:96px;display:block;}
+#credits-button .rotwrap{display:inline-block;/* rotation removed */ animation:none;}
+#credits-button .rotwrap.slow{animation-duration:20s;}
+#credits-button .squashwrap{display:inline-block;}
+#credits-button .squashwrap.squash{animation:squash 160ms ease-out;}
+#credits-button, #credits-button * { cursor: auto !important; }
 /* Icon labels removed */
 /* Visual-only extra bouncer */
 #fun-bouncer{position:fixed;top:0;left:0;z-index:10000;background:transparent;border:none;padding:0;margin:0;will-change:transform;}
@@ -194,6 +205,7 @@ body.icons-paused #fun-bouncer .rotwrap,
 body.icons-paused #watch-button .rotwrap,
 body.icons-paused #groovy-bouncer .rotwrap,
 body.icons-paused #poppies-bouncer .rotwrap { animation-play-state: paused !important; }
+body.icons-paused #credits-button .rotwrap { animation-play-state: paused !important; }
 
 /* Landscape lock overlay (touch devices: phones + tablets) */
 #landscape-lock{ display:none; }
@@ -221,6 +233,47 @@ body.landscape-paused #custom-cursor { animation-play-state: paused !important; 
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 #mobile-touch-area { position:fixed; inset:0; z-index:25; background:transparent; display:none; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
 #portfolio-content.active #mobile-touch-area { display:block; }
+
+/* Credits overlay */
+#credits-overlay{ position:fixed; inset:0; z-index:16000; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; padding:6vh 4vw; box-sizing:border-box; }
+#credits-overlay .credits-inner{ position:relative; width:min(640px,90vw); max-height:80vh; background:rgba(20,20,20,0.6); border:1px solid rgba(50,255,79,0.35); border-radius:14px; padding:28px 34px 36px; box-shadow:0 8px 40px rgba(0,0,0,0.5); backdrop-filter:blur(6px) saturate(1.2); overflow:hidden; display:flex; flex-direction:column; }
+#credits-overlay #close-credits{ position:absolute; top:6px; right:10px; background:transparent; border:none; color:#32ff4f; font-size:30px; line-height:1; cursor:auto !important; padding:4px 6px; }
+#credits-overlay #close-credits:focus-visible{ outline:2px solid #32ff4f; border-radius:6px; }
+#credits-overlay .credits-scroll{ position:relative; overflow:hidden; flex:1; }
+#credits-overlay .credits-content{ font-family:'GENSCO',sans-serif; font-size:15px; line-height:1.35; color:#d4d4d4; display:flex; flex-direction:column; gap:14px; padding-right:4px; }
+#credits-overlay .credits-content h2 {
+  margin:0 0 6px;
+  font-family:'RAMI',serif;
+  letter-spacing:6px;
+  font-size:30px;
+  text-align:center;
+  animation:title-spectrum 24s linear infinite;
+  /* Remove breathing effect */
+}
+#credits-overlay .credits-content p:first-of-type { text-align:center; }
+#credits-overlay .credits-content h2 + p {
+  text-align:center;
+  font-family:'RAMI',serif;
+  letter-spacing:5px;
+  font-size:22px;
+  margin-top:-4px;
+  margin-bottom:12px;
+  animation:title-spectrum 24s linear infinite;
+  text-transform:uppercase;
+}
+#credits-overlay .credits-content p:last-of-type {
+  text-align:center;
+}
+#credits-overlay .credits-icon-container{margin-top:18px; display:flex; justify-content:center; align-items:center; pointer-events:none; opacity:0.9;}
+#credits-overlay .credits-icon-container img{width:82px; height:82px; object-fit:contain; filter:drop-shadow(0 0 6px rgba(50,255,79,0.4));}
+#credits-overlay h2{ margin:0 0 6px; font-family:'RAMI',serif; letter-spacing:6px; font-size:30px; text-align:center; animation:title-spectrum 24s linear infinite; }
+@media (max-width:600px){
+  #credits-button{ left:50%; bottom:6px; top:auto; transform:translateX(-50%); }
+  #credits-overlay .credits-inner{ width:92vw; padding:20px 22px 28px; }
+  #credits-overlay .credits-content{ font-size:14px; gap:12px; }
+  #credits-overlay h2{ font-size:24px; letter-spacing:4px; }
+  #credits-button img{ width:110px; height:110px; }
+}
 
 /* Removed tap/click instruction styles */
 

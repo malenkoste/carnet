@@ -25,6 +25,7 @@
   </div>
 
   <div id="portfolio-content" style="display:none;">
+  <div id="model-loading-indicator" aria-hidden="true">LOADING 3D</div>
     <div id="mobile-touch-area"></div>
     <div id="artwork-display" aria-label="3D model display area">
       <!-- model-viewer elements inserted dynamically by main.js -->
@@ -40,6 +41,11 @@
     <!-- Single contact button opening the message form directly -->
     <button id="contact-button" aria-label="Contact / Send message">
       <span class="rotwrap medium"><span class="squashwrap"><img src="assets/images/contacticon.png"/></span></span>
+    </button>
+
+    <!-- Credits rotating icon -->
+    <button id="credits-button" aria-label="Credits / About">
+      <span class="rotwrap slow"><span class="squashwrap"><img src="assets/images/credits.png" alt=""/></span></span>
     </button>
 
     <!-- Instagram bouncing icon -->
@@ -66,6 +72,18 @@
         </div>
         <div id="contact-form-status" aria-live="polite"></div>
       </form>
+    </div>
+    <!-- Credits overlay (content loaded dynamically from assets/credits/credits.html) -->
+    <div id="credits-overlay" aria-hidden="true" role="dialog" aria-label="Credits">
+      <div class="credits-inner">
+        <button id="close-credits" aria-label="Close credits">×</button>
+        <div class="credits-scroll">
+          <div class="credits-content" data-external-credits></div>
+        </div>
+        <div class="credits-icon-container" aria-hidden="true">
+          <img src="assets/images/copmaicon.png" alt="" />
+        </div>
+      </div>
     </div>
     <!-- Removed extra decorative / navigation icons -->
   </div>
