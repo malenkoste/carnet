@@ -46,7 +46,7 @@ const artworkManager={
 	initialPreloadTarget:0,loadedCount:0,
 	async initFromManifest(){
 		try{
-			const res=await fetch('assets/scripts/artworks.json',{cache:'no-store'});
+			const res=await fetch('assets/scripts/artworks_models.json',{cache:'no-store'});
 			this.manifest=await res.json();
 			let allFiles=this.manifest.map((m,idx)=>{
 				const ext=m.file.split('.').pop();
@@ -299,13 +299,7 @@ function isInContactUI(target){
 		{ id:'contact-form-status', visible:true },
 		{ id:'close-contact-form', visible:true },
 	];
-	for(const e of entries){
-		const el=document.getElementById(e.id);
-		if(!el) continue;
-		if(e.visible && !(el.offsetParent!==null || el.style.display==='block')) continue; // skip hidden
-		if(target===el || (el.contains && el.contains(target))) return true;
-	}
-	return false;
+// isInContactUI now supplied by common.js
 }
 function setupPortfolioEvents(){ if(!isMobile){ const pc=document.getElementById('portfolio-content'); pc.addEventListener('click',e=>{
 		if(isInContactUI(e.target)) { e.stopPropagation(); e.preventDefault(); return; }
@@ -435,6 +429,7 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 		});
 	})();
 })();
+// Slideshow now initialized via common.js
 
 // Block mobile zoom (pinch + double-tap) to avoid breaking tap targets on iOS
 (function(){
@@ -465,6 +460,8 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 	btn.addEventListener('click', openForm);
 	btn.addEventListener('touchend', openForm, { passive:false });
 })();
+// Contact button & form logic moved to common.js
+window.addEventListener('load',()=>{ portfolioLoader.show(); if(window.CommonInit){ window.CommonInit.init(); } artworkManager.initFromManifest(); setupPortfolioEvents(); const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; } });
 
 	// Contact form popover and submission (optional endpoint)
 	(function(){
@@ -572,9 +569,9 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 	}
 	const poppies=document.getElementById('poppies-bouncer');
 	if(poppies){
-		const toggle=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); } document.body.classList.toggle('icons-paused'); };
-		poppies.addEventListener('click', toggle);
-		poppies.addEventListener('touchend', toggle, { passive:false });
+		const goMedia=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); } window.location.href='media.html'; };
+		poppies.addEventListener('click', goMedia);
+		poppies.addEventListener('touchend', goMedia, { passive:false });
 	}
 })();
 

@@ -3,56 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-  <title>Livre d'Ezra – Portfolio</title>
+  <title>Livre d'Ezra – Media</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png"/>
   <link rel="stylesheet" href="assets/styles/main.css"/>
-  <!-- 3D model viewer (web components) -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <script nomodule src="https://unpkg.com/@google/model-viewer/dist/model-viewer-legacy.js"></script>
 </head>
 <body>
-  <!-- Transition video acts as sole loader -->
   <div id="portfolio-loading">
     <video id="portfolio-loading-video" muted autoplay loop playsinline>
       <source src="assets/videos/transition.mp4" type="video/mp4" />
     </video>
   </div>
-
-  <!-- Background slideshow (behind all content) -->
   <div id="background-slideshow" aria-hidden="true">
     <div class="bg-frame" data-frame="0"></div>
     <div class="bg-frame" data-frame="1"></div>
   </div>
-
   <div id="portfolio-content" style="display:none;">
     <div id="mobile-touch-area"></div>
-    <div id="artwork-display" aria-label="3D model display area">
-      <!-- model-viewer elements inserted dynamically by main.js -->
+    <div id="artwork-display">
+      <img id="artwork-media" src="" alt="" style="opacity:0;" />
     </div>
-    <!-- Prev/Next artwork controls for models only -->
     <button id="prev-artwork" type="button" aria-label="Previous artwork" style="display:none;" class="nav-icon-btn">
       <img src="assets/images/prev.png" alt=""/>
     </button>
     <button id="next-artwork" type="button" aria-label="Next artwork" style="display:none;" class="nav-icon-btn">
       <img src="assets/images/next.png" alt=""/>
     </button>
-
-    <!-- Single contact button opening the message form directly -->
     <button id="contact-button" aria-label="Contact / Send message">
       <span class="rotwrap medium"><span class="squashwrap"><img src="assets/images/contacticon.png"/></span></span>
     </button>
-
-    <!-- Instagram bouncing icon -->
-    <button id="groovy-bouncer" aria-hidden="true" tabindex="-1" data-frames="assets/images/Untitled-1.png,assets/images/Untitled-2.png,assets/images/Untitled-3.png,assets/images/Untitled-4.png,assets/images/Untitled-5.png,assets/images/Untitled-6.png">
+    <button id="groovy-bouncer" aria-hidden="true" tabindex="-1">
       <span class="rotwrap"><span class="squashwrap"><img src="assets/images/Untitled-1.png" alt=""/></span></span>
     </button>
-
-    <!-- Pause/resume bouncing icon -->
     <button id="poppies-bouncer" aria-hidden="true" tabindex="-1">
       <span class="rotwrap"><span class="squashwrap"><img src="assets/images/poppies.png" alt=""/></span></span>
     </button>
-
-    <!-- Message contact form (Formspree) -->
     <div id="contact-form-popover" role="dialog" aria-modal="false" aria-labelledby="contact-form-title" data-endpoint="https://formspree.io/f/movnqldp">
       <div id="contact-form-title" class="sr-only">Send a message</div>
       <form id="contact-form">
@@ -67,20 +51,12 @@
         <div id="contact-form-status" aria-live="polite"></div>
       </form>
     </div>
-    <!-- Removed extra decorative / navigation icons -->
   </div>
-
-  <!-- Animated custom cursor element (hidden on touch devices) -->
   <div id="custom-cursor" aria-hidden="true"></div>
-  <!-- Cursor-follow overlay for title + meta (desktop only) -->
-
-  <!-- Landscape lock overlay (shown on mobile landscape; pauses app) -->
   <div id="landscape-lock" aria-hidden="true">
     <div class="landscape-lock-inner">PLEASE ROTATE TO PORTRAIT MODE</div>
   </div>
-  
-
   <script src="assets/scripts/common.js" defer></script>
-  <script src="assets/scripts/main.js" defer></script>
+  <script src="assets/scripts/media.js" defer></script>
 </body>
 </html>
