@@ -40,7 +40,9 @@ function getAdaptivePreloadCount(){const nav=navigator.connection||navigator.web
 const artworkManager={
 	paused:false,
 	mediaFiles:[],currentIndex:0,isLoading:false,viewedArtworks:new Set(),cache:new Map(),preloadPromises:new Map(),
-	PRELOAD_AHEAD:getAdaptivePreloadCount(),manifest:[],initialArtworkDisplayed:false,initialReadyMarked:false,initialArtworkInserted:false,
+	PRELOAD_AHEAD:(function(){ const base=getAdaptivePreloadCount(); return isMobile ? Math.min(2, base) : base; })(),
+	MAX_CACHE_SIZE:10,
+	manifest:[],initialArtworkDisplayed:false,initialReadyMarked:false,initialArtworkInserted:false,
 	initialPreloadTarget:0,loadedCount:0,
 	async initFromManifest(){
 		try{
@@ -160,7 +162,11 @@ const artworkManager={
 		preloadedEl.alt=mediaFile.meta?.alt || mediaFile.name;
 		preloadedEl.classList.remove('wavy-in','wavy-out');
 		const display=document.getElementById('artwork-display');
-		if(outgoing&&outgoing.parentNode) outgoing.parentNode.removeChild(outgoing);
+		if(outgoing&&outgoing.parentNode){
+			// Proactive video cleanup to release memory
+			try{ if(outgoing.tagName==='VIDEO'){ outgoing.pause(); outgoing.removeAttribute('src'); outgoing.load(); } }catch(_){ }
+			outgoing.parentNode.removeChild(outgoing);
+		}
 		display.appendChild(preloadedEl);
 		// Mosaic removed
 		requestAnimationFrame(()=>{
@@ -207,7 +213,10 @@ const artworkManager={
 		preloadedEl.alt=mediaFile.meta?.alt || mediaFile.name;
 		preloadedEl.classList.remove('wavy-in','wavy-out');
 		const display=document.getElementById('artwork-display');
-		if(outgoing&&outgoing.parentNode) outgoing.parentNode.removeChild(outgoing);
+		if(outgoing&&outgoing.parentNode){
+			try{ if(outgoing.tagName==='VIDEO'){ outgoing.pause(); outgoing.removeAttribute('src'); outgoing.load(); } }catch(_){ }
+			outgoing.parentNode.removeChild(outgoing);
+		}
 		display.appendChild(preloadedEl);
 		// Mosaic removed
 		requestAnimationFrame(()=>{
@@ -232,38 +241,53 @@ const artworkManager={
 		if(this.preloadPromises.has(idx)) return this.preloadPromises.get(idx);
 		const p=new Promise((resolve,reject)=>{
 			if(mediaFile.type==='image'){
-				const img=new Image();
-				img.decoding='async';
-				img.onload=()=>{this.cache.set(idx,img);this.loadedCount++; this.attemptReady(); resolve(img);};
+				const img=new Image(); img.decoding='async';
+				img.onload=()=>{this.cache.set(idx,img);this.loadedCount++; this.attemptReady(); this.evictIfNeeded(); resolve(img);};
 				img.onerror=reject; img.src=mediaFile.url;
-			} else if(mediaFile.type==='video'){
-				const vid=document.createElement('video');
-				vid.preload='auto'; vid.muted=true; vid.loop=true;
-				vid.onloadeddata=()=>{this.cache.set(idx,vid);this.loadedCount++; this.attemptReady(); resolve(vid);};
+			}else if(mediaFile.type==='video'){
+				const vid=document.createElement('video'); vid.preload='metadata'; vid.muted=true; vid.loop=true;
+				vid.onloadeddata=()=>{this.cache.set(idx,vid);this.loadedCount++; this.attemptReady(); this.evictIfNeeded(); resolve(vid);};
 				vid.onerror=reject; vid.src=mediaFile.url; vid.load();
 			}else if(mediaFile.type==='model'){
-				// Lightweight sentinel: just record that this model URL was queued; real element created on display
 				const sentinel={ type:'model-sentinel', url:mediaFile.url };
 				this.cache.set(idx, sentinel);
-				this.loadedCount++; this.attemptReady(); resolve(sentinel);
+				this.loadedCount++; this.attemptReady(); this.evictIfNeeded(); resolve(sentinel);
 			}
 		}).finally(()=>this.preloadPromises.delete(idx));
 		this.preloadPromises.set(idx,p);
 		return p;
 	},
+	evictIfNeeded(){
+		if(this.cache.size <= this.MAX_CACHE_SIZE) return;
+		const protectedIdx=new Set([
+			this.currentIndex,
+			(this.currentIndex+1)%this.mediaFiles.length,
+			(this.currentIndex-1+this.mediaFiles.length)%this.mediaFiles.length
+		]);
+		for(const [cIdx,el] of Array.from(this.cache.entries())){
+			if(this.cache.size <= this.MAX_CACHE_SIZE) break;
+			if(protectedIdx.has(cIdx)) continue;
+			const mediaFile=this.mediaFiles[cIdx];
+			if(!mediaFile) { this.cache.delete(cIdx); continue; }
+			if(mediaFile.type==='video' || mediaFile.type==='image'){
+				try{ if(mediaFile.type==='video' && el && el.tagName==='VIDEO'){ el.pause(); el.removeAttribute('src'); el.load(); } }catch(_){ }
+				this.cache.delete(cIdx);
+			}
+		}
+	},
 	preloadAround(centerIndex){
 		if(this.mediaFiles.length===0) return;
 		for(let offset=0;offset<=this.PRELOAD_AHEAD;offset++){
-			const idx=(centerIndex+offset)%this.mediaFiles.length;
-			const file=this.mediaFiles[idx];
-			if(file) this.preloadMedia(file).catch(()=>{});
+			const idx=(centerIndex+offset)%this.mediaFiles.length; const file=this.mediaFiles[idx]; if(!file) continue; this.preloadMedia(file).catch(()=>{});
 		}
 	}
 };
 
  const portfolioLoader={isLoading:true,ready:false,minShowMs:4000,startTime:0,show(){const el=document.getElementById('portfolio-loading');const vid=document.getElementById('portfolio-loading-video'); if(el){el.style.display='flex'; el.classList.remove('fade-out');}
  if(vid){vid.playbackRate=0.66; vid.currentTime=0; const ensure=()=>{const p=vid.play(); if(p) p.catch(()=>setTimeout(ensure,400));}; ensure(); vid.addEventListener('stalled',ensure); vid.addEventListener('pause',()=>{ if(!portfolioLoader.ready && !vid.dataset.landscapePaused) ensure(); });}
- this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); if(el) el.style.display='none'; const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); try{ window.loaderDone = true; }catch(_){ } }};
+ this.startTime=performance.now();},markReady(){if(this.ready) return; this.ready=true; const elapsed=performance.now()-this.startTime; const remain=Math.max(0,this.minShowMs-elapsed); setTimeout(()=>this.fadeOutAndComplete(),remain);},fadeOutAndComplete(){if(!this.isLoading) return; const el=document.getElementById('portfolio-loading'); if(el){el.classList.add('fade-out'); setTimeout(()=>this.complete(),1000);} else { this.complete(); }},complete(){this.isLoading=false; const el=document.getElementById('portfolio-loading'); const vid=document.getElementById('portfolio-loading-video'); if(el){ el.style.display='none'; }
+ if(vid){ try{ vid.pause(); vid.removeAttribute('src'); vid.load(); }catch(_){ } }
+ const pc=document.getElementById('portfolio-content'); if(pc){ pc.style.display='block'; pc.classList.add('active'); } audioSystem.startBackgroundMusic(); try{ window.loaderDone = true; }catch(_){ } }};
  
 
 function isInContactUI(target){
@@ -320,10 +344,20 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 
 	// Wheel (horizontal by default, Shift = vertical)
 	window.addEventListener('wheel',e=>{ const mv=currentMV(); if(!mv) return; e.stopPropagation(); const delta=Math.sign(e.deltaY||0)*8; if(e.shiftKey) spin(mv,0,delta); else spin(mv,delta,0); },{passive:false});
-	// Arrow keys continuous rotation (reuse previous logic simplified)
+	// Arrow keys continuous rotation: rAF only when needed (no permanent interval)
 	const keyState={left:false,right:false,up:false,down:false};
-	setInterval(()=>{ const mv=currentMV(); if(!mv) return; const step=4; const h=(keyState.left?-step:0)+(keyState.right?step:0); const v=(keyState.up?-step:0)+(keyState.down?step:0); if(h||v) spin(mv,h,v); },30);
-	window.addEventListener('keydown',e=>{ const mv=currentMV(); if(!mv) return; if(e.key==='ArrowLeft'){keyState.left=true; e.preventDefault();} else if(e.key==='ArrowRight'){keyState.right=true; e.preventDefault();} else if(e.key==='ArrowUp'){keyState.up=true; e.preventDefault();} else if(e.key==='ArrowDown'){keyState.down=true; e.preventDefault();} });
+	let rotateRAF=null;
+	function rotateLoop(){
+		const mv=currentMV();
+		if(!mv){ rotateRAF=null; return; }
+		const step=4;
+		const h=(keyState.left?-step:0)+(keyState.right?step:0);
+		const v=(keyState.up?-step:0)+(keyState.down?step:0);
+		if(h||v) spin(mv,h,v);
+		rotateRAF=requestAnimationFrame(rotateLoop);
+	}
+	function ensureRotate(){ if(!rotateRAF) rotateLoop(); }
+	window.addEventListener('keydown',e=>{ const mv=currentMV(); if(!mv) return; if(e.key==='ArrowLeft'){keyState.left=true; ensureRotate(); e.preventDefault();} else if(e.key==='ArrowRight'){keyState.right=true; ensureRotate(); e.preventDefault();} else if(e.key==='ArrowUp'){keyState.up=true; ensureRotate(); e.preventDefault();} else if(e.key==='ArrowDown'){keyState.down=true; ensureRotate(); e.preventDefault();} });
 	window.addEventListener('keyup',e=>{ if(e.key==='ArrowLeft') keyState.left=false; else if(e.key==='ArrowRight') keyState.right=false; else if(e.key==='ArrowUp') keyState.up=false; else if(e.key==='ArrowDown') keyState.down=false; });
 
 	// Mouse drag (left button) & right button
@@ -350,13 +384,14 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 	const root = document.getElementById('background-slideshow'); if(!root) return;
 	const frames = Array.from(root.querySelectorAll('.bg-frame'));
 	if(frames.length<2) return;
-	// Build a broad candidate list (Background/background + 1..50, multiple extensions)
+	// Build a capped candidate list (max 20 logical images) to reduce network pressure
 	const bases = ['Background','background'];
 	const exts = ['png','jpg','jpeg','webp','avif'];
-	const candidates = new Set();
-	for(const base of bases){ for(const ext of exts){ candidates.add(`assets/images/${base}.${ext}`); } }
-	for(let i=1;i<=50;i++){
-		for(const base of bases){ for(const ext of exts){ candidates.add(`assets/images/${base}${i}.${ext}`); } }
+	const candidates = [];
+	function pushCandidate(path){ if(candidates.length<100) candidates.push(path); }
+	for(const base of bases){ for(const ext of exts){ pushCandidate(`assets/images/${base}.${ext}`); } }
+	outer: for(let i=1;i<=20;i++){
+		for(const base of bases){ for(const ext of exts){ pushCandidate(`assets/images/${base}${i}.${ext}`); if(candidates.length>=100) break outer; } }
 	}
 	// Probe which images exist by attempting to load them
 	function preload(url){ return new Promise(resolve=>{ const i=new Image(); i.onload=()=>resolve(url); i.onerror=()=>resolve(null); i.src=url; }); }
@@ -367,7 +402,7 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 		return { name:m[1].toLowerCase(), num: m[2] ? parseInt(m[2],10) : 0 };
 	}
 	(async function(){
-		const probed = await Promise.all(Array.from(candidates).map(preload));
+		const probed = await Promise.all(candidates.map(preload));
 		let existing = probed.filter(Boolean);
 		if(!existing.length){
 			// Fallback to the body background image if no separate assets found
@@ -526,105 +561,26 @@ window.addEventListener('load',()=>{ portfolioLoader.show(); artworkManager.init
 		});
 	})();
 
-// Bouncing icons system (restored for groovy & poppies)
+// Bouncing system removed: provide static behavior + stub controller
 (function(){
-	const getViewport = () => {
-		const vv = window.visualViewport;
-		return vv ? { w: Math.floor(vv.width), h: Math.floor(vv.height) } : { w: innerWidth, h: innerHeight };
-	};
-	function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-	function rnd(min,max){ return min + Math.random()*(max-min); }
-	function rndSign(){ return Math.random()>0.5?1:-1; }
-	function measure(el){ const r=el.getBoundingClientRect(); return { w:r.width||120, h:r.height||120 }; }
-
-	const sprites=[];
-	function addSprite(id, speedRange){
-		const el=document.getElementById(id); if(!el) return null;
-		const { w:vw, h:vh } = getViewport();
-		const m=measure(el); const w=m.w, h=m.h;
-		let x = rnd(0, Math.max(0, vw - w));
-		let y = rnd(0, Math.max(0, vh - h));
-		let vx = rnd(speedRange.vx[0], speedRange.vx[1]) * rndSign();
-		let vy = rnd(speedRange.vy[0], speedRange.vy[1]) * rndSign();
-		el.style.transform=`translate3d(${x}px,${y}px,0)`;
-		const sprite={ el,x,y,vx,vy,w,h,speedRange, jitter:rnd(6,12), timeScale:rnd(0.92,1.08), active:true };
-		sprites.push(sprite);
-		return sprite;
-	}
-
-	const groovy=addSprite('groovy-bouncer',{ vx:[110,160], vy:[100,150] });
-	const poppies=addSprite('poppies-bouncer',{ vx:[100,150], vy:[90,140] });
-
+	window.bounceController={ pause(){}, resume(){}, isPaused(){ return false; }, has(){ return false; } };
+	const groovy=document.getElementById('groovy-bouncer');
 	if(groovy){
 		const openInsta=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); } window.open('https://www.instagram.com/malenkoste','_blank','noopener'); };
-		groovy.el.addEventListener('click', openInsta);
-		groovy.el.addEventListener('touchend', openInsta, { passive:false });
+		groovy.addEventListener('click', openInsta);
+		groovy.addEventListener('touchend', openInsta, { passive:false });
 	}
+	const poppies=document.getElementById('poppies-bouncer');
 	if(poppies){
-		const reason='user-toggle';
-		const toggle=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); }
-			if(window.bounceController.has(reason)) window.bounceController.resume(reason); else window.bounceController.pause(reason);
-		};
-		poppies.el.addEventListener('click', toggle);
-		poppies.el.addEventListener('touchend', toggle, { passive:false });
+		const toggle=(e)=>{ if(e){ e.stopPropagation(); if(e.type==='touchend') e.preventDefault(); } document.body.classList.toggle('icons-paused'); };
+		poppies.addEventListener('click', toggle);
+		poppies.addEventListener('touchend', toggle, { passive:false });
 	}
-
-	let last=performance.now();
-	let rafId=null; let paused=false; const pauseReasons=new Set();
-	function step(now){
-		const dt=(now-last)/1000; last=now;
-		if(!paused){
-			const { w:vw, h:vh } = getViewport();
-			for(const s of sprites){ if(!s.active) continue; const tdt=dt*s.timeScale; s.vx += (Math.random()*2-1)*s.jitter*dt; s.vy += (Math.random()*2-1)*s.jitter*dt; s.x += s.vx*tdt; s.y += s.vy*tdt; let hit=false; if(s.x<=0){s.x=0; s.vx=Math.abs(s.vx); hit=true;} if(s.x+s.w>=vw){ s.x=Math.max(0,vw-s.w); s.vx=-Math.abs(s.vx); hit=true;} if(s.y<=0){ s.y=0; s.vy=Math.abs(s.vy); hit=true;} if(s.y+s.h>=vh){ s.y=Math.max(0,vh-s.h); s.vy=-Math.abs(s.vy); hit=true;} s.el.style.transform=`translate3d(${s.x}px,${s.y}px,0)`; if(hit){ const wrap=s.el.querySelector('.squashwrap'); if(wrap){ wrap.classList.add('squash'); setTimeout(()=>wrap.classList.remove('squash'),160); } } }
-		}
-		rafId=requestAnimationFrame(step);
-	}
-	requestAnimationFrame((t)=>{ last=t; rafId=requestAnimationFrame(step); });
-
-	function applyPaused(){ const p = pauseReasons.size>0; if(p!==paused){ paused=p; if(paused) document.body.classList.add('icons-paused'); else document.body.classList.remove('icons-paused'); } }
-	window.bounceController={
-		pause(reason='generic'){ pauseReasons.add(reason); applyPaused(); },
-		resume(reason='generic'){ pauseReasons.delete(reason); applyPaused(); },
-		isPaused(){ return paused; },
-		has(reason){ return pauseReasons.has(reason); }
-	};
-
-	function reclamp(){ const { w:vw, h:vh } = getViewport(); for(const s of sprites){ s.x=clamp(s.x,0,Math.max(0,vw-s.w)); s.y=clamp(s.y,0,Math.max(0,vh-s.h)); s.el.style.transform=`translate3d(${s.x}px,${s.y}px,0)`; } }
-	window.addEventListener('resize',reclamp); window.addEventListener('orientationchange',reclamp);
 })();
 
 // Mosaic renderer removed
 
-// Ensure background fills mobile screens fully by forcing cover on resize/orientation
-(function(){
-	// Ping-pong sprite animation for groovy-bouncer (6 frames)
-	const el = document.getElementById('groovy-bouncer'); if(!el) return;
-	const img = el.querySelector('img'); if(!img) return;
-	const framesAttr = el.getAttribute('data-frames')||'';
-	const frames = framesAttr.split(',').map(s=>s.trim()).filter(Boolean);
-	if(frames.length < 2) return;
-	// Preload frames
-	let loaded=0; const pre=[]; frames.forEach((u,i)=>{ const im=new Image(); im.onload=done; im.onerror=done; im.src=u; pre[i]=im; });
-	function done(){ if(++loaded===frames.length){ start(); } }
-	let i=0, dir=1; let timer=null; let paused=false; const interval=90; // ~11 fps
-	function step(){
-		if(paused) return;
-		img.src = frames[i];
-		i += dir;
-		if(i===frames.length-1 || i===0) dir *= -1; // ping-pong at ends
-		timer = setTimeout(step, interval);
-	}
-	function start(){ if(timer) return; step(); }
-	function setPaused(p){ paused=p; if(paused){ if(timer){ clearTimeout(timer); timer=null; } } else { if(!timer) step(); } }
-	const applyPauseFromControllers=()=>{
-		const landscapePaused = !!(window.landscapeController && window.landscapeController.isPaused);
-		const iconsPaused = !!(window.bounceController && window.bounceController.isPaused && window.bounceController.isPaused());
-		setPaused(landscapePaused || iconsPaused);
-	};
-	window.addEventListener('resize',applyPauseFromControllers);
-	window.addEventListener('orientationchange',applyPauseFromControllers);
-	setTimeout(applyPauseFromControllers,0);
-})();
+// Removed groovy ping-pong frame animation
 
 (function(){
 	const apply=()=>{
